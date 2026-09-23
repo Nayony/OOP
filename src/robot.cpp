@@ -1,7 +1,8 @@
 #include "robot.h"
 Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _is_enemy)
             :_max_hp(_max_hp), _damage(_damage) ,_hp(_max_hp), _max_energy(_max_energy),
-            _energy(_max_energy), _xp(0), _xp_to_lvlup(240), _current_lvl(0), _is_enemy(_is_enemy)
+            _energy(_max_energy), _xp(0), _xp_to_lvlup(240), _current_lvl(0), _is_enemy(_is_enemy),
+            _pos_x(0), _pos_y(0)
             {
             }
     void Robot ::SetHp(int value){
@@ -12,6 +13,10 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
             _hp = value;
             //if hp <= 0:kill;
         }
+    }
+    void Robot::SetPos(int x,int y){
+        _pos_x = x;
+        _pos_y = y;
     }
     void Robot ::SetEnergy(int value){
         if (value>_max_energy){
@@ -49,5 +54,5 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     }
     const int Robot ::GetHp() { return _hp;}
     const int Robot ::GetDamage() { return _damage;}
-    const int Robot ::GetType() { return _is_enemy;}
+    const bool Robot ::GetType() { return _is_enemy;}
     const int Robot ::GetEnergy() { return _energy;}
