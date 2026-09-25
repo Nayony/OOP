@@ -56,3 +56,4 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     const int Robot ::GetDamage() { return _damage;}
     const bool Robot ::GetType() { return _is_enemy;}
     const int Robot ::GetEnergy() { return _energy;}
+    const std::vector<int> Robot::GetPos() const { return {_pos_x,_pos_y};}

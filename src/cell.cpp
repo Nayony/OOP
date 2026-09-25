@@ -10,5 +10,5 @@ void Cell::SetOccupied(bool value){
     _is_occupied = value;
 }
 
-const bool Cell::GetPassible(){ return _is_impassable;}
-const bool Cell::GetOccupied(){ return _is_occupied;}
+const bool Cell::GetPassible() const{ return _is_impassable;}
+const bool Cell::GetOccupied() const{ return _is_occupied;}

@@ -5,8 +5,8 @@
 #include <iostream>
 #include <random>
 using namespace std;
-Map::Map(int _w,int _h,int _count_of_impassable)
-    : _width(_w), _height(_h), _count_of_impassable(_count_of_impassable)
+Map::Map(int _w,int _h,int _cnt_of_impassable)
+    : _width(_w), _height(_h), _count_of_impassable(_cnt_of_impassable)
     {
     if (_width < 5){
         _width = 5;
@@ -25,13 +25,14 @@ Map::Map(int _w,int _h,int _count_of_impassable)
     }
     _grid.assign(_height, vector<Cell>(_width, Cell(false,false)));
     }
-    vector<int> Map::CalculateCellSize(vector<int> window_size){
+    const vector<int> Map::CalculateCellSize(vector<int> window_size) const{
         int cell_width = (window_size[0]) / _width;
         int cell_height = (window_size[1]) / _height;
         return vector<int>{cell_width, cell_height};
     }
-    const vector<int> Map::GetSize(){ return {_width, _height};}
-    vector<vector<Cell>>& Map::GetGrid(){ return _grid;}
+    const vector<int> Map::GetSize() const{ return {_width, _height};}
+    vector<vector<Cell>>& Map::GetGrid() { return _grid;}
+    const vector<vector<Cell>>& Map::GetGrid() const{ return _grid;}
     vector<int> Map::ChangeIndexType(int index){
         int row = index / _width;
         int col = index % _width;
@@ -47,6 +48,7 @@ Map::Map(int _w,int _h,int _count_of_impassable)
         }
         return nums;
     }
+    Cell& Map::GetCell(int x, int y) { return _grid[y][x]; }
     vector<vector<Cell>> Map::CreateGrid(){
         _grid.assign(_height, vector<Cell>(_width, Cell(false,false)));
         auto nums = RandomBlockedCells();

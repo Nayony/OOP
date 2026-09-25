@@ -3,7 +3,7 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 
-
+#include <vector>
 class Robot{
     protected:
         int _hp, _max_hp, _energy, _max_energy, _xp, _xp_to_lvlup, _current_lvl,_damage;
@@ -21,7 +21,7 @@ class Robot{
     const int GetDamage();
     const bool GetType();
     const int GetEnergy();
-    
+    const std::vector<int> GetPos() const;
     void interaction(Robot &other);
 };
 #endif
