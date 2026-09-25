@@ -8,7 +8,7 @@ using namespace std;
 #include <SFML/Graphics.hpp>
 
 int main(){
-    auto game = Game(3);
+    auto game = Game(10);
     Controls controls;
     sf::RenderWindow window(sf::VideoMode({1000, 1000}), "main");
     Visualizer visualizer(game, window);
@@ -23,6 +23,9 @@ int main(){
             if (const auto* key = event->getIf<sf::Event::KeyPressed>()){
                 if (key->code == sf::Keyboard::Key::Escape){
                     window.close();
+                }
+                else if(key->code == sf::Keyboard::Key::M){
+                    game.MoveEnemyRobots();
                 }
                 else{
                     game.Move(controls.TranslateCmd(*key));

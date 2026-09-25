@@ -1,5 +1,6 @@
 #include "map.h"
 #include "cell.h"
+#include "robot.h"
 #include <algorithm>
 #include <vector>
 #include <iostream>
@@ -8,17 +9,17 @@ using namespace std;
 Map::Map(int _w,int _h,int _cnt_of_impassable)
     : _width(_w), _height(_h), _count_of_impassable(_cnt_of_impassable)
     {
-    if (_width < 5){
-        _width = 5;
+    if (_width < 15){
+        _width = 15;
     }
-    else if(_width > 7){
-        _width = 7;
+    else if(_width > 20){
+        _width = 20;
     }
-    if (_height < 5){
-        _height = 5;
+    if (_height < 15){
+        _height = 15;
     }
-    else if(_height > 7){
-        _height = 7;
+    else if(_height > 20){
+        _height = 20;
     }
     if (_count_of_impassable > min(_width,_height) - 1){
         _count_of_impassable = min(_width,_height) - 1;
@@ -33,10 +34,10 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
     const vector<int> Map::GetSize() const{ return {_width, _height};}
     vector<vector<Cell>>& Map::GetGrid() { return _grid;}
     const vector<vector<Cell>>& Map::GetGrid() const{ return _grid;}
-    vector<int> Map::ChangeIndexType(int index){
+    Position Map::ChangeIndexType(int index){
         int row = index / _width;
         int col = index % _width;
-        return {row, col};
+        return Position(col, row);
     }
     vector <int> Map::RandomBlockedCells(){
         vector<int> nums;
@@ -48,7 +49,62 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         }
         return nums;
     }
-    Cell& Map::GetCell(int x, int y) { return _grid[y][x]; }
+    Cell& Map::GetCell(const Position& position) { return _grid[position.Y()][position.X()]; }
+    void Map::FindFreeCell(Robot& robot){
+        if (robot.GetType() == true){
+            for (int y = _height - 1; y >= 0; y -=2 ) {
+                for (int x = _width - 1; x >= 0; x -= 2) {
+                    if (_grid[y][x].GetPassable() == true and _grid[y][x].GetOccupied() == false){
+                        for(int i = y-1; i <= y+1; ++i){
+                            for(int j = x-1; j <= x+1; ++j){
+                                if (i < 0 || i >= _height || j < 0 || j >= _width) continue;
+                                if (_grid[i][j].GetPassable() == true and _grid[i][j].GetOccupied() == false){
+                                    robot.SetPos(Position(x, y));
+                                    _grid[y][x].SetOccupied(true);
+                                    return;
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+        else{
+            for (int y = 0; y < _height; y++) {
+                for (int x = 0; x < _width; x++) {
+                    if (_grid[y][x].GetPassable() == true and _grid[y][x].GetOccupied() == false){
+                        for(int i = y-1; i <= y+1; ++i){
+                            for(int j = x-1; j <= x+1; ++j){
+                                if (i < 0 || i >= _height || j < 0 || j >= _width) continue;
+                                if (_grid[i][j].GetPassable() == true and _grid[i][j].GetOccupied() == false){
+                                    robot.SetPos(Position(x, y));
+                                    _grid[y][x].SetOccupied(true);
+                                    return;
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+    bool Map::IsFree(const Position& position) const{
+        if (position.X() < 0 or position.Y() < 0 or position.X() >= _width or position.Y() >= _height){
+            return false;
+        }
+        if (_grid[position.Y()][position.X()].GetPassable() == false){
+            return false;
+        }
+        return true;
+    }
+    bool Map::IsOccupied(const Position& position) const{
+        if (_grid[position.Y()][position.X()].GetOccupied() == true){
+            return true;
+        }
+        return false;
+    }
     vector<vector<Cell>> Map::CreateGrid(){
         _grid.assign(_height, vector<Cell>(_width, Cell(false,false)));
         auto nums = RandomBlockedCells();
@@ -66,5 +122,4 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         }
         return _grid;
     }
-    
     

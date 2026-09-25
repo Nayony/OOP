@@ -1,8 +1,7 @@
 #include "game.h"
-#include <iostream>
 
 Game::Game(int _enemy_robot_count)
-    : _enemy_robot_count(_enemy_robot_count),_map(7, 7, 7),
+    : _enemy_robot_count(_enemy_robot_count),_map(15, 15, 10),
     _player(100, 100, 240, 10, false, 3)
 {
     _map.CreateGrid();
@@ -20,61 +19,92 @@ Delta DirectionDelta(Controls::keys cmd) {
         default:                     return {0, 0};
     }
 }
-void Game::TestCells(Robot &robot, vector<vector<Cell>> &grid,int w,int h){
-    if (robot.GetType() == true){
-        for (int i = w-1; i > 0; --i) {
-            for (int j = h-1; j > 0; --j) {
-                if (grid[i][j].GetPassible() == false and grid[i][j].GetOccupied() == false){
-                    robot.SetPos(j, i);
-                    grid[i][j].SetOccupied(true);
-                    return;
-                }
+void Game::Kill(Robot& robot) {
+    if (&robot == &_player) {
+        throw std::runtime_error("Player has been killed!"); // тут сделать нормальную логику
+    }
+    auto it = std::find_if(_enemy_arr.begin(), _enemy_arr.end(),
+                            [&robot](const Robot& r) { return &r == &robot; }); //Еще раз разобраться с этим
+
+    if (it != _enemy_arr.end()) {
+        _enemy_arr.erase(it);
+    }
+
+}
+void Game::SetRobotPos(){
+    for (int i = 0; i < _enemy_robot_count; ++i) {
+        Robot enemy(10, 10, 240, 10, true);
+        _map.FindFreeCell(enemy);
+        _enemy_arr.push_back(enemy);
+    }
+    _map.FindFreeCell(_player);
+}
+Robot& Game::WhoOccupies(const Position& position){
+    if (_player.GetPos().X() == position.X() and _player.GetPos().Y() == position.Y()){
+        return _player;
+    }
+    for (Robot& robot : _enemy_arr){
+        if (robot.GetPos().X() == position.X() and robot.GetPos().Y() == position.Y()){
+            return robot;
+        }
+    }
+    throw std::runtime_error("No robot here");
+}
+Controls::keys RandomDirection() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, static_cast<int>(Controls::kDown));
+    return static_cast<Controls::keys>(dist(gen));
+}
+void Game::MoveEnemyRobots(){
+    for (Robot& robot : _enemy_arr) {
+        for (int attempts = 0; attempts < 4; ++attempts) {
+            if (MoveRobot(robot, RandomDirection())) {
+                break;
             }
+        }
+    }
+}
+void Game::Move(Controls::keys cmd) {
+    MoveRobot(_player, cmd);
+}
+
+bool Game::MoveRobot(Robot& robot, Controls::keys cmd) {
+    if (cmd == Controls::keys::kNone) return false;
+
+    Delta delta = DirectionDelta(cmd);
+    const Position current_position = robot.GetPos();
+    const Position new_position(current_position.X() + delta.dx, current_position.Y() + delta.dy);
+
+    if (!_map.IsFree(new_position)) return false;
+    if (_map.IsOccupied(new_position)){
+        auto& other_robot = WhoOccupies(new_position);
+        if (!interaction(robot, other_robot)) {
+            Kill(other_robot);
+            _map.GetCell(new_position).SetOccupied(false);
+        }
+        return true;
+    }
+    else{
+        _map.GetCell(current_position).SetOccupied(false);
+        robot.SetPos(new_position);
+        _map.GetCell(new_position).SetOccupied(true);
+        return true;
+    }
+}
+bool Game::interaction(Robot main,Robot &other){
+    if (main.GetType() != other.GetType()){
+        other.SetHp(other.GetHp() - main.GetDamage());
+        if (other.GetHp() <= 0){
+            return false;
         }
     }
     else{
-    for (int i = 0; i < w; ++i) {
-        for (int j = 0; j < h; ++j) {
-            if (grid[i][j].GetPassible() == false and grid[i][j].GetOccupied() == false){
-                robot.SetPos(j, i);
-                grid[i][j].SetOccupied(true);
-                return;
-            }
+        if (main.GetDamage() > 0){
+            other.SetHp(other.GetHp() + main.GetDamage());
         }
     }
-}
-}
-void Game::SetRobotPos(){
-    auto map_size = _map.GetSize();
-    for (int i = 0; i < _enemy_robot_count; ++i) {
-        Robot enemy(100, 100, 240, 10, true);
-        TestCells(enemy, _map.GetGrid(), map_size[0], map_size[1]);
-        _enemy_arr.push_back(enemy);
-    }
-
-    TestCells(_player, _map.GetGrid(), map_size[0], map_size[1]);
-}
-bool Game::TestCellPassibility(int x, int y){
-    if (x < 0 or y < 0 or x >= _map.GetSize()[0] or y >= _map.GetSize()[1]){
-        return false;
-    }
-    if (_map.GetGrid()[y][x].GetPassible() == true or _map.GetGrid()[y][x].GetOccupied() == true){
-        return false;
-    }
     return true;
-}
-void Game::Move(Controls::keys cmd) {
-    if (cmd == Controls::keys::kNone) return;
-
-    Delta delta = DirectionDelta(cmd);
-    int new_x = _player.GetPos().X() + delta.dx;
-    int new_y = _player.GetPos().Y() + delta.dy;
-
-    if (!TestCellPassibility(new_x, new_y)) return;
-
-    _map.GetCell(_player.GetPos().X(), _player.GetPos().Y()).SetOccupied(false);
-    _player.SetPos(Position(new_x, new_y));
-    _map.GetCell(new_x, new_y).SetOccupied(true);
 }
 
 const Map& Game::GetMap() const { return _map; }

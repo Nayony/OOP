@@ -3,10 +3,10 @@
 #define POSITION
 class Position {
 public:
-    Position(int x, int y) : x_(x), y_(y) {}
+    Position(int x, int y);
 
-    int X() const {}
-    int Y() const {}
+    int X() const;
+    int Y() const;
 
 private:
     int x_;

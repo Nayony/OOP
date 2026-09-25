@@ -15,6 +15,10 @@ add_executable(MainTest
     src/player.cpp
     src/enemy.cpp
     src/game.cpp
+    src/visualization.cpp
+    src/controls.cpp
+    src/position.h
+    src/position.cpp
 )
 
 target_link_libraries(MainTest PRIVATE

@@ -10,7 +10,7 @@ class Cell{
     public:
         Cell();
         Cell(bool _is_impassable,bool _is_occupied);
-        const bool GetPassible() const;
+        const bool GetPassable() const;
         const bool GetOccupied() const;
         void SetOccupied(bool value);
         

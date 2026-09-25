@@ -1,22 +1,25 @@
 #include "robot.h"
+#include <iostream>
+using namespace std;
 Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _is_enemy)
             :_max_hp(_max_hp), _damage(_damage) ,_hp(_max_hp), _max_energy(_max_energy),
             _energy(_max_energy), _xp(0), _xp_to_lvlup(240), _current_lvl(0), _is_enemy(_is_enemy),
-            _pos_x(0), _pos_y(0)
+            _position(0, 0)
             {
             }
     void Robot ::SetHp(int value){
-        if (value>_max_hp){
+        if (_hp+value>_max_hp){
             _hp = _max_hp;
         }
-        if (value>0){
+        else if (value>0){
             _hp = value;
-            //if hp <= 0:kill;
+            }
+        if (value <= 0){
+            _hp = 0;
         }
     }
-    void Robot::SetPos(int x,int y){
-        _pos_x = x;
-        _pos_y = y;
+    void Robot::SetPos(const Position& position){
+        _position = position;
     }
     void Robot ::SetEnergy(int value){
         if (value>_max_energy){
@@ -40,20 +43,8 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     void Robot ::SetEnemy(bool value){
         _is_enemy = value;
     }
-    void Robot::interaction(Robot &other){
-        if (_is_enemy != other._is_enemy){
-            if (_damage > 0){
-               other.SetHp(other.GetHp() - _damage);
-            }
-        }
-        else{
-            if (_damage > 0){
-                other.SetHp(other.GetHp() + _damage);
-            }
-        }
-    }
-    const int Robot ::GetHp() { return _hp;}
     const int Robot ::GetDamage() { return _damage;}
+    const int Robot ::GetHp() { return _hp;}
     const bool Robot ::GetType() { return _is_enemy;}
     const int Robot ::GetEnergy() { return _energy;}
-    const std::vector<int> Robot::GetPos() const { return {_pos_x,_pos_y};}
+    Position Robot::GetPos() const { return _position; }

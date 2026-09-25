@@ -11,6 +11,8 @@ Controls::keys Controls::TranslateCmd(const sf::Event::KeyPressed& key){
                 return kLeft;
             case sf::Keyboard::Key::D:
                 return kRight;
+            case sf::Keyboard::Key::M:
+                return KMove;
             default:
                 return kNone;
             }

@@ -2,7 +2,11 @@
 #define MAP
 #include <vector>
 #include "cell.h"
+#include "position.h"
 using namespace std;
+
+class Robot;
+
 class Map{
     protected:
         int _width,_height,_count_of_impassable;
@@ -16,8 +20,11 @@ class Map{
         vector<int> RandomBlockedCells();
         vector<vector<Cell>>& GetGrid();
         const vector<vector<Cell>>& GetGrid() const;
-        vector<int> ChangeIndexType(int index);
-        Cell& GetCell(int x, int y);
+        Position ChangeIndexType(int index);
+        Cell& GetCell(const Position& position);
+        void FindFreeCell(Robot& robot);
+        bool IsFree(const Position& position) const;
+        bool IsOccupied(const Position& position) const;
 };
     
 
