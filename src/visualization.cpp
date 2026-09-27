@@ -1,58 +1,139 @@
 #include "visualization.h"
 
-Visualizer::Visualizer(const Game& game, sf::RenderWindow& window)
-    : game_(game), window_(window), _offset(5)
-{
-}
 
-void Visualizer::Draw(){
-    auto map_size = game_.GetMap().GetSize();
-    auto cell_size = game_.GetMap().CalculateCellSize({1000,1000});
-    auto grid = game_.GetMap().GetGrid();
-    Visualizer::DrawCells(map_size, cell_size,grid);
-    Visualizer::DrawRobots(game_.GetRobots(), cell_size);
-    Visualizer::DrawPlayer(game_.GetPlayer(), cell_size);
-}
-void Visualizer::DrawPlayer(const Player& player, const std::vector<int>& cell_size){
-    sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
-    const Position position = player.GetPos();
-    rectangle.setPosition({float(position.X() * cell_size[0]) + _offset, float(position.Y() * cell_size[1]) + _offset});
-    rectangle.setFillColor(sf::Color::Blue);
-    window_.draw(rectangle);
-}
-void Visualizer::DrawRobots(const std::vector<Robot>& robots, const std::vector<int>& cell_size){
-    for (const auto& robot : robots){
-        sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
-        const Position position = robot.GetPos();
-        rectangle.setPosition({float(position.X() * cell_size[0]) + _offset, float(position.Y() * cell_size[1]) + _offset});
-        rectangle.setFillColor(sf::Color::Red);
-        window_.draw(rectangle);
+Visualizer::Visualizer(const Game& game,sf::RenderWindow& window)
+    : game_(game), window_(window), _offset_x(20), _offset_y(50)
+{
+    window_.setFramerateLimit(60);
+    if (!font_.openFromFile("D:\\vscode\\public\\OOP\\OOP\\assets\\font.ttf")) {
+        throw std::runtime_error("Font not found");
     }
 }
-void Visualizer::MakeCross(float pos_x, float pos_y,int width, int height){
-    sf::VertexArray lines(sf::PrimitiveType::Lines, 4);
+using namespace sf ;
+void Visualizer::Draw(std::string game_state){
+    const auto& map_size = game_.GetMap().GetSize();
+    const auto& cell_size = game_.GetMap().CalculateCellSize({int(1000-(2*_offset_x)),int(1000- (2*_offset_y))});
+    const auto& grid = game_.GetMap().GetGrid();
+
+    if (game_state == "Win"){
+        Text text = Text{ font_, "You Win"};
+        text.setCharacterSize(100);
+        text.setFillColor(Color::Yellow);
+        text.setPosition({float(window_.getSize().x/2-text.getLocalBounds().size.x/2),float(window_.getSize().y/2-text.getLocalBounds().size.y)});
+        window_.draw(text);
+    }
+    else if(game_state == "Lose"){
+        Text text = Text{ font_, "You Lose"};
+        text.setCharacterSize(100);
+        text.setFillColor(Color::Blue);
+        text.setPosition({float(window_.getSize().x/2-text.getLocalBounds().size.x/2),float(window_.getSize().y/2-text.getLocalBounds().size.y)});
+        window_.draw(text);
+    }
+    else{
+        Visualizer::DrawCells(map_size, cell_size,grid);
+        Visualizer::DrawRobots(game_.GetRobots(), cell_size,grid);
+        Visualizer::DrawPlayer(game_.GetPlayer(), cell_size);
+        Visualizer::ShowCurSpecifications(game_.GetPlayer());
+    }
+    
+
+}
+void Visualizer::ShowCurSpecifications(const Player& player){
+    if (font_.getInfo().family.empty()) {
+        return;
+    }
+    Text text = Text{ font_, "Energy: " + std::to_string(player.GetEnergy()) };
+    text.setCharacterSize(30);
+    text.setFillColor(Color::Yellow);
+        int text_offset = text.getLocalBounds().size.x;
+    text.setPosition({ (window_.getSize().x - 5*text_offset) / 2.f, 0.f });
+    window_.draw(text);
+    text = Text{ font_, "Xp: " + std::to_string(player.GetXp()) + " / " + std::to_string(player.GetXpToLvlUp()) };
+    text.setCharacterSize(30);
+    text.setFillColor(Color::Yellow);
+    text.setPosition({ (window_.getSize().x - 1*text_offset) / 2.f, 0.f });
+    window_.draw(text);
+    text = Text{ font_, "Lvl: " + std::to_string(player.GetLvl()) };
+    text.setCharacterSize(30);
+    text.setFillColor(Color::Yellow);
+    text.setPosition({ (window_.getSize().x + 3*text_offset) / 2.f, 0.f });
+    window_.draw(text);
+}
+
+void Visualizer::DrawSpecificationsOnRobot(const RectangleShape& rectangle,const Robot& robot){
+    if (!font_.getInfo().family.empty()){
+    Text text = Text{ font_, std::to_string(robot.GetHp())};
+    text.setCharacterSize(20);
+    text.setFillColor(Color::White);
+    text.setPosition({rectangle.getPosition().x, rectangle.getPosition().y});
+    window_.draw(text);
+    text = Text{ font_, std::to_string(robot.GetDamage())};
+    text.setCharacterSize(20);
+    text.setFillColor(Color::White);
+    text.setPosition({rectangle.getPosition().x + rectangle.getSize().x - 1.5f*text.getLocalBounds().size.x, rectangle.getPosition().y});
+    window_.draw(text);
+}
+}
+void Visualizer::DrawPlayer(const Player& player, const std::vector<int>& cell_size){
+    RectangleShape rectangle(::Vector2f(cell_size[0], cell_size[1]));
+    const Position position = player.GetPos();
+    rectangle.setPosition({float(position.X() * cell_size[0]) + _offset_x, float(position.Y() * cell_size[1]) + _offset_y});
+    rectangle.setFillColor(::Color::Blue);
+    window_.draw(rectangle);
+    DrawSpecificationsOnRobot(rectangle, player);
+}
+void Visualizer::DrawRobots(const std::vector<Robot>& robots, const std::vector<int>& cell_size, const std::vector<std::vector<Cell>>& grid){
+    for (const auto& robot : robots){
+        RectangleShape rectangle(Vector2f(cell_size[0], cell_size[1]));
+        const Position position = robot.GetPos();
+        if (grid[position.Y()][position.X()].GetVisible() == true){
+            rectangle.setPosition({float(position.X() * cell_size[0]) + _offset_x, float(position.Y() * cell_size[1]) + _offset_y});
+            rectangle.setFillColor(Color::Red);
+            window_.draw(rectangle);
+            DrawSpecificationsOnRobot(rectangle, robot);
+        }
+    }
+}
+void Visualizer::DrawCross(float pos_x, float pos_y,int width, int height, int alpha){
+    VertexArray lines(PrimitiveType::Lines, 4);
     lines[0].position = {pos_x, pos_y};
-    lines[1].position = {pos_x + width,pos_y+height};
-    lines[2].position = {pos_x+width, pos_y};
-    lines[3].position = {pos_x,pos_y+height};
+    lines[0].color = Color(255, 255, 255, alpha);
+    lines[1].position = {pos_x + width, pos_y + height};
+    lines[1].color = Color(255, 255, 255, alpha);
+    lines[2].position = {pos_x + width, pos_y};
+    lines[2].color = Color(255, 255, 255, alpha);
+    lines[3].position = {pos_x, pos_y + height};
+    lines[3].color = Color(255, 255, 255, alpha);
+
     window_.draw(lines);
 }
 void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<int>& cell_size, const std::vector<std::vector<Cell>>& grid){
     float x,y;
     for (int i = 0; i < map_size[1]; i++){
         for (int j = 0; j < map_size[0]; j++){
-            sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
-            x = (j*cell_size[0] + _offset);
-            y = (i*cell_size[1] + _offset);
+            RectangleShape rectangle(Vector2f(cell_size[0], cell_size[1]));
+            x = (j*cell_size[0] + _offset_x);
+            y = (i*cell_size[1] + _offset_y);
             rectangle.setPosition({x,y});
             if (grid[i][j].GetPassable() == false){
-                MakeCross(x,y,cell_size[0],cell_size[1]);
+                if (grid[i][j].GetVisible() == true){
+                    DrawCross(x,y,cell_size[0],cell_size[1],255);
+                }
+                if (grid[i][j].GetExplored() == true and grid[i][j].GetVisible() == false){
+                    DrawCross(x,y,cell_size[0],cell_size[1],128);
+                }
             }
-            if(grid[i][j].GetOccupied() != true){
-                rectangle.setFillColor(sf::Color::Transparent);
-            }
+            // if(grid[i][j].GetOccupied() != true){
+            // }
+            rectangle.setFillColor(Color::Transparent);
             rectangle.setOutlineThickness(1.f);
-            rectangle.setOutlineColor(sf::Color::Green);
+            if (grid[i][j].GetVisible() == true){
+                rectangle.setOutlineColor({91, 183, 186});
+            }
+            else{
+                rectangle.setOutlineColor({91, 183, 186,64});
+            }
+
             window_.draw(rectangle);
         }
 }

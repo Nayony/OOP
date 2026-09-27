@@ -3,7 +3,6 @@
 #define GAME
 
 #include "map.h"
-#include "robot.h"
 #include "player.h"
 #include <vector>
 #include "controls.h"
@@ -17,6 +16,9 @@ class Game{
         Map _map;
         std::vector<Robot> _enemy_arr;
         Player _player;
+        bool _player_turn;
+        bool _win;
+        bool _lose;
     private:
         bool MoveRobot(Robot& robot, Controls::keys cmd);
     public:
@@ -28,9 +30,12 @@ class Game{
         void Move(Controls::keys cmd);
         bool interaction(Robot main, Robot &other);
         Robot& WhoOccupies(const Position& position);
+        void DecreaseEnemyCount();
         void Kill(Robot& robot);
+        void ResetEnergy();
         void RandomMove(Robot& robot);
         void MoveEnemyRobots();
+        std::string GetGameState() const;
 };
     
 

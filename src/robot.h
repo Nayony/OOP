@@ -12,15 +12,19 @@ class Robot{
     Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _is_enemy);
     void SetHp(int value);
     void SetEnergy(int value);
-    void SetLvl(int value);
+    void SetLvl();
     void SetXp(int value);
     void SetEnemy(bool value);
+    void IncreaseMaxHp(int value);
     void SetPos(const Position& position);
-    const int GetHp();
-    const bool GetType();
-    const int GetEnergy();
-    const int GetDamage();
-    Position GetPos() const;
+    const int GetHp() const;
+    const bool GetType() const;
+    const int GetEnergy() const;
+    const int GetDamage() const;
+    const int GetLvl() const;
+    const int GetXp() const;
+    const int GetXpToLvlUp() const;
+    const Position GetPos() const;
 
 };
 #endif

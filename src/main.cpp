@@ -8,9 +8,9 @@ using namespace std;
 #include <SFML/Graphics.hpp>
 
 int main(){
-    auto game = Game(10);
+    auto game = Game(5);
     Controls controls;
-    sf::RenderWindow window(sf::VideoMode({1000, 1000}), "main");
+    sf::RenderWindow window(sf::VideoMode({1000, 1000}), "Baldur's Gate 4");
     Visualizer visualizer(game, window);
 
     while (window.isOpen())
@@ -24,17 +24,14 @@ int main(){
                 if (key->code == sf::Keyboard::Key::Escape){
                     window.close();
                 }
-                else if(key->code == sf::Keyboard::Key::M){
-                    game.MoveEnemyRobots();
-                }
-                else{
+                if (game.GetGameState() == "Playing"){
                     game.Move(controls.TranslateCmd(*key));
                 }
             }
         }
 
         window.clear(sf::Color::Black);
-        visualizer.Draw();
+        visualizer.Draw(game.GetGameState());
         window.display();
     }
 

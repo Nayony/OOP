@@ -11,7 +11,6 @@ class Controls{
     kRight,
     kLeft,
     kDown,
-    KMove, // Убрать
     kNone,
     };  
         keys TranslateCmd(const sf::Event::KeyPressed& key);

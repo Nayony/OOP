@@ -1,30 +1,25 @@
 #include "map.h"
-#include "cell.h"
-#include "robot.h"
-#include <algorithm>
-#include <vector>
-#include <iostream>
-#include <random>
+
 using namespace std;
 Map::Map(int _w,int _h,int _cnt_of_impassable)
     : _width(_w), _height(_h), _count_of_impassable(_cnt_of_impassable)
     {
-    if (_width < 15){
-        _width = 15;
+    if (_width < 12){
+        _width = 12;
     }
-    else if(_width > 20){
-        _width = 20;
+    else if(_width > 16){
+        _width = 16;
     }
-    if (_height < 15){
-        _height = 15;
+    if (_height < 12){
+        _height = 12;
     }
-    else if(_height > 20){
-        _height = 20;
+    else if(_height > 16){
+        _height = 16;
     }
     if (_count_of_impassable > min(_width,_height) - 1){
         _count_of_impassable = min(_width,_height) - 1;
     }
-    _grid.assign(_height, vector<Cell>(_width, Cell(false,false)));
+    _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false)));
     }
     const vector<int> Map::CalculateCellSize(vector<int> window_size) const{
         int cell_width = (window_size[0]) / _width;
@@ -106,20 +101,36 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         return false;
     }
     vector<vector<Cell>> Map::CreateGrid(){
-        _grid.assign(_height, vector<Cell>(_width, Cell(false,false)));
+        _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false)));
         auto nums = RandomBlockedCells();
         int index = 0;
         for (int i = 0; i < _height; i++){
             for (int j = 0; j < _width; j++){
                 index += 1;
                 if (find(nums.begin(),nums.end(),index) != nums.end()){
-                    _grid[i][j] = Cell(true,false);
+                    _grid[i][j] = Cell(true,false,false);
                 }
                 else{
-                    _grid[i][j] = Cell(false,false);
+                    _grid[i][j] = Cell(false,false,false);
                 }
             }
         }
         return _grid;
     }
-    
+    int Map::ManhattanDistance(const Position &position1,const Position &position2){
+        return abs(position1.X() -position2.X()) + abs(position1.Y() -position2.Y());
+    }
+
+    void Map::SetVisibleToCells(const Player& player){
+        for (int y = 0; y < _height; ++y) {
+            for (int x = 0; x < _width; ++x) {
+                if (ManhattanDistance(Position(x,y),player.GetPos()) <= player.GetVisibleRadius()){
+                    _grid[y][x].SetVisible(true);
+                    _grid[y][x].SetExploed(true);
+                }
+                else{
+                    _grid[y][x].SetVisible(false);
+                }
+            }
+        }
+    }

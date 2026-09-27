@@ -1,8 +1,15 @@
 #ifndef MAP
 #define MAP
+
 #include <vector>
 #include "cell.h"
 #include "position.h"
+#include "player.h"
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include <random>
+
 using namespace std;
 
 class Robot;
@@ -25,6 +32,8 @@ class Map{
         void FindFreeCell(Robot& robot);
         bool IsFree(const Position& position) const;
         bool IsOccupied(const Position& position) const;
+        void SetVisibleToCells(const Player& player);
+        int ManhattanDistance(const Position &position1,const Position &position2);
 };
     
 
