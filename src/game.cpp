@@ -2,11 +2,11 @@
 #include <iostream>
 Game::Game(int _enemy_robot_count)
     : _enemy_robot_count(_enemy_robot_count),_map(12, 12, 10),
-    _player(8, 2, 240, 10, false, 3),_player_turn(true), _lose(false), _win(false)
+    _player(8, 2, 240, 10, false, 3,2),_player_turn(true), _lose(false), _win(false)
 {
     _map.CreateGrid();
-    _map.SetVisibleToCells(_player);
     SetRobotPos();
+    _map.SetVisibleToCells(_player);
 }
 
 struct Delta { int dx; int dy; };
@@ -42,7 +42,7 @@ void Game::Kill(Robot& robot) {
 }
 void Game::SetRobotPos(){
     for (int i = 0; i < _enemy_robot_count; ++i) {
-        Robot enemy(10, 1, 240, 4, true);
+        Robot enemy(10, 1, 240, 4, true,2);
         _map.FindFreeCell(enemy);
         _enemy_arr.push_back(enemy);
     }
@@ -59,81 +59,98 @@ Robot& Game::WhoOccupies(const Position& position){
     }
     throw std::runtime_error("No robot here");
 }
-Controls::keys RandomDirection() {
+
+Controls::keys Game::RandomDirection() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(0, static_cast<int>(Controls::kDown));
+    std::uniform_int_distribution<int> dist(0, static_cast<int>(Controls::keys::kDown));
     return static_cast<Controls::keys>(dist(gen));
 }
 void Game::ResetEnergy(){
     _player.SetEnergy(-1);
+    _player.SetSpeed(-1);
     for (Robot& robot : _enemy_arr) {
         robot.SetEnergy(-1);
+        robot.SetSpeed(-1);
     }
 }
 void Game::MoveEnemyRobots(){
-    int index = _enemy_robot_count;
-    while (index > 0){
-    if (!_player_turn){
+    if (_player_turn) return;
+
     for (Robot& robot : _enemy_arr) {
-        for (int attempts = 0; attempts < 4; ++attempts) {
+        int attempts = 0;
+        while (robot.GetEnergy() > 0 && attempts < 10 && !_lose) {
             if (MoveRobot(robot, RandomDirection())) {
-                robot.SetEnergy(robot.GetEnergy() - 1);
-                if (robot.GetEnergy() <= 0){
-                    index--;
-                    if (index == 0) {
-                        ResetEnergy();
-                        _player_turn = true;
-                        break;
-                    }
-                    
-                }
-                break;
+                attempts = 0;
+            }
+            else {
+                ++attempts;
             }
         }
     }
-}
-    }
+
+    ResetEnergy();
+    _player_turn = true;
 }
 void Game::Move(Controls::keys cmd) {
-    if (_player_turn){
-    if (MoveRobot(_player, cmd)){
+    if (!_player_turn || _win || _lose) return;
+    if (MoveRobot(_player, cmd)) {
         _map.SetVisibleToCells(_player);
-        _player.SetEnergy(_player.GetEnergy() - 1);
-        if (_player.GetEnergy()<=0){
+        if (_win || _lose) return;
+        if (_player.GetEnergy() <= 0) {
             _player_turn = false;
+            ResetEnergy();
             MoveEnemyRobots();
         }
     }
 }
+
+bool CalculateRobotSpeed(Robot& robot,const Cell& cell){
+    const int cost = cell.GetCost();
+    if (robot.GetSpeed() < cost) {
+        return false;
+    }
+
+    robot.SetSpeed(robot.GetSpeed() - cost);
+    if (robot.GetSpeed() == 0) {
+        robot.SetSpeed(-1);
+        robot.SetEnergy(robot.GetEnergy() - 1);
+    }
+
+    return true;
 }
+
 
 bool Game::MoveRobot(Robot& robot, Controls::keys cmd) {
     if (cmd == Controls::keys::kNone) return false;
-
     Delta delta = DirectionDelta(cmd);
+    if (delta.dx == 0 && delta.dy == 0) return false;
     const Position current_position = robot.GetPos();
     const Position new_position(current_position.X() + delta.dx, current_position.Y() + delta.dy);
 
     if (!_map.IsFree(new_position)) return false;
     if (_map.IsOccupied(new_position)){
+
         auto& other_robot = WhoOccupies(new_position);
         if (!interaction(robot, other_robot)) {
             robot.SetXp(80);
             Kill(other_robot);
             _map.GetCell(new_position).SetOccupied(false);
         }
-        
         return true;
     }
     else{
+        if (!CalculateRobotSpeed(robot, _map.GetCell(new_position))) {
+            return false;
+        }
         _map.GetCell(current_position).SetOccupied(false);
         robot.SetPos(new_position);
         _map.GetCell(new_position).SetOccupied(true);
         return true;
     }
 }
-bool Game::interaction(Robot main,Robot &other){
+bool Game::interaction(Robot& main,Robot &other){
+    main.SetEnergy(main.GetEnergy() - 1);
     if (main.GetType() != other.GetType()){
         other.SetHp(other.GetHp() - main.GetDamage());
         if (other.GetHp() <= 0){
@@ -148,6 +165,8 @@ bool Game::interaction(Robot main,Robot &other){
     return true;
 }
 
+
+
 std::string Game::GetGameState() const {
     if (_win) {
         return "Win";
@@ -157,6 +176,7 @@ std::string Game::GetGameState() const {
     }
     return "Playing";
 }
+
 
 const Map& Game::GetMap() const { return _map; }
 const Player& Game::GetPlayer() const { return _player; }
