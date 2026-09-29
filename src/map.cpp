@@ -19,7 +19,7 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
     if (_count_of_impassable > min(_width,_height) - 1){
         _count_of_impassable = min(_width,_height) - 1;
     }
-    _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false)));
+    _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false,1)));
     }
     const vector<int> Map::CalculateCellSize(vector<int> window_size) const{
         int cell_width = (window_size[0]) / _width;
@@ -34,17 +34,24 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         int col = index % _width;
         return Position(col, row);
     }
-    vector <int> Map::RandomBlockedCells(){
+    vector <int> Map::RandomBlockedCells(vector<int>& indexes){
         vector<int> nums;
-        random_device rd;
-        mt19937 gen(rd());
+        int value;
+        static random_device rd;
+        static mt19937 gen(rd());
         uniform_int_distribution<> distr(1,_width*_height);
         for (int i =0;i<_count_of_impassable;i++){
-            nums.push_back(distr(gen));
+            value = distr(gen);
+            auto pi = std::find(indexes.begin(), indexes.end(), value);
+            if (pi != indexes.end()) {
+                indexes.erase(pi);
+            }
+            nums.push_back(value);
         }
         return nums;
     }
     Cell& Map::GetCell(const Position& position) { return _grid[position.Y()][position.X()]; }
+    const Cell& Map::GetCell(const Position& position) const { return _grid[position.Y()][position.X()]; }
     void Map::FindFreeCell(Robot& robot){
         if (robot.GetType() == true){
             for (int y = _height - 1; y >= 0; y -=2 ) {
@@ -101,20 +108,33 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         return false;
     }
     vector<vector<Cell>> Map::CreateGrid(){
-        _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false)));
-        auto nums = RandomBlockedCells();
-        int index = 0;
-        for (int i = 0; i < _height; i++){
-            for (int j = 0; j < _width; j++){
-                index += 1;
-                if (find(nums.begin(),nums.end(),index) != nums.end()){
-                    _grid[i][j] = Cell(true,false,false);
+        _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false,1)));
+
+        vector<int> all_indexes;
+        all_indexes.reserve(_width * _height);
+        for (int i = 1; i <= _width * _height; ++i) {
+            all_indexes.push_back(i);
+        }
+
+        auto blocked = RandomBlockedCells(all_indexes);
+        auto costly = RandomBlockedCells(all_indexes);
+
+        for (int i = 0; i < _height; ++i) {
+            for (int j = 0; j < _width; ++j) {
+                const int cell_index = i * _width + j + 1;
+
+                if (find(blocked.begin(), blocked.end(), cell_index) != blocked.end()) {
+                    _grid[i][j] = Cell(true, false, false, 1);
                 }
-                else{
-                    _grid[i][j] = Cell(false,false,false);
+                else if (find(costly.begin(), costly.end(), cell_index) != costly.end()) {
+                    _grid[i][j] = Cell(false, false, false, 2);
+                }
+                else {
+                    _grid[i][j] = Cell(false, false, false, 1);
                 }
             }
         }
+
         return _grid;
     }
     int Map::ManhattanDistance(const Position &position1,const Position &position2){

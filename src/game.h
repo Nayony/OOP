@@ -28,13 +28,15 @@ class Game{
         const Player& GetPlayer() const;
         const std::vector<Robot>& GetRobots() const;
         void Move(Controls::keys cmd);
-        bool interaction(Robot main, Robot &other);
+        bool AttackRobot(Robot& robot, Controls::keys cmd);
+        bool interaction(Robot &main, Robot &other);
         Robot& WhoOccupies(const Position& position);
         void DecreaseEnemyCount();
         void Kill(Robot& robot);
         void ResetEnergy();
-        void RandomMove(Robot& robot);
+        Controls::keys RandomDirection();
         void MoveEnemyRobots();
+        void Pass();
         std::string GetGameState() const;
 };
     

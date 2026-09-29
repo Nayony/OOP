@@ -24,11 +24,13 @@ class Map{
         const vector<int> CalculateCellSize(vector<int> window_size) const;
         const vector<int> GetSize() const;
         vector<vector<Cell>> CreateGrid();
-        vector<int> RandomBlockedCells();
+        vector<int> RandomBlockedCells(vector<int>& indexses);
+        //vector <int> RandomCostlyCells(vector<int>& indexes);
         vector<vector<Cell>>& GetGrid();
         const vector<vector<Cell>>& GetGrid() const;
         Position ChangeIndexType(int index);
         Cell& GetCell(const Position& position);
+        const Cell& GetCell(const Position& position) const;
         void FindFreeCell(Robot& robot);
         bool IsFree(const Position& position) const;
         bool IsOccupied(const Position& position) const;

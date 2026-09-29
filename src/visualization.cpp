@@ -38,26 +38,21 @@ void Visualizer::Draw(std::string game_state){
     
 
 }
-void Visualizer::ShowCurSpecifications(const Player& player){
-    if (font_.getInfo().family.empty()) {
-        return;
+void Visualizer::ShowCurSpecifications(const Player& player) {
+    const std::string labels[] = {
+        "Energy: " + std::to_string(player.GetEnergy()),
+        "Xp: " + std::to_string(player.GetXp()) + " / " + std::to_string(player.GetXpToLvlUp()),
+        "Lvl: " + std::to_string(player.GetLvl()),
+        "Speed: " + std::to_string(player.GetSpeed())
+    };
+
+    const float slot = window_.getSize().x / 4.f;
+    for (int i = 0; i < 4; ++i) {
+        Text text(font_, labels[i], 30);
+        text.setFillColor(Color::Yellow);
+        text.setPosition({slot * i + 10.f, 0.f});
+        window_.draw(text);
     }
-    Text text = Text{ font_, "Energy: " + std::to_string(player.GetEnergy()) };
-    text.setCharacterSize(30);
-    text.setFillColor(Color::Yellow);
-        int text_offset = text.getLocalBounds().size.x;
-    text.setPosition({ (window_.getSize().x - 5*text_offset) / 2.f, 0.f });
-    window_.draw(text);
-    text = Text{ font_, "Xp: " + std::to_string(player.GetXp()) + " / " + std::to_string(player.GetXpToLvlUp()) };
-    text.setCharacterSize(30);
-    text.setFillColor(Color::Yellow);
-    text.setPosition({ (window_.getSize().x - 1*text_offset) / 2.f, 0.f });
-    window_.draw(text);
-    text = Text{ font_, "Lvl: " + std::to_string(player.GetLvl()) };
-    text.setCharacterSize(30);
-    text.setFillColor(Color::Yellow);
-    text.setPosition({ (window_.getSize().x + 3*text_offset) / 2.f, 0.f });
-    window_.draw(text);
 }
 
 void Visualizer::DrawSpecificationsOnRobot(const RectangleShape& rectangle,const Robot& robot){
@@ -107,34 +102,35 @@ void Visualizer::DrawCross(float pos_x, float pos_y,int width, int height, int a
 
     window_.draw(lines);
 }
-void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<int>& cell_size, const std::vector<std::vector<Cell>>& grid){
-    float x,y;
-    for (int i = 0; i < map_size[1]; i++){
-        for (int j = 0; j < map_size[0]; j++){
-            RectangleShape rectangle(Vector2f(cell_size[0], cell_size[1]));
-            x = (j*cell_size[0] + _offset_x);
-            y = (i*cell_size[1] + _offset_y);
-            rectangle.setPosition({x,y});
-            if (grid[i][j].GetPassable() == false){
-                if (grid[i][j].GetVisible() == true){
-                    DrawCross(x,y,cell_size[0],cell_size[1],255);
+void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<int>& cell_size,
+                           const std::vector<std::vector<Cell>>& grid) {
+    RectangleShape rectangle(Vector2f(cell_size[0], cell_size[1]));
+    rectangle.setOutlineThickness(1.f);
+
+    for (int i = 0; i < map_size[1]; i++) {
+        for (int j = 0; j < map_size[0]; j++) {
+            const Cell& cell = grid[i][j];
+            const float x = j * cell_size[0] + _offset_x;
+            const float y = i * cell_size[1] + _offset_y;
+
+            const bool visible = cell.GetVisible();
+            const bool seen = visible || cell.GetExplored();
+            const int alpha = visible ? 255 : 128;
+
+            Color fill = Color::Transparent;
+            if (seen) {
+                if (!cell.GetPassable()) {
+                    DrawCross(x, y, cell_size[0], cell_size[1], alpha);
                 }
-                if (grid[i][j].GetExplored() == true and grid[i][j].GetVisible() == false){
-                    DrawCross(x,y,cell_size[0],cell_size[1],128);
+                else if (cell.GetCost() != 1) {
+                    fill = Color(0, 0, 255, alpha);
                 }
-            }
-            // if(grid[i][j].GetOccupied() != true){
-            // }
-            rectangle.setFillColor(Color::Transparent);
-            rectangle.setOutlineThickness(1.f);
-            if (grid[i][j].GetVisible() == true){
-                rectangle.setOutlineColor({91, 183, 186});
-            }
-            else{
-                rectangle.setOutlineColor({91, 183, 186,64});
             }
 
+            rectangle.setPosition({x, y});
+            rectangle.setFillColor(fill);
+            rectangle.setOutlineColor(Color(91, 183, 186, visible ? 255 : 64));
             window_.draw(rectangle);
         }
-}
+    }
 }

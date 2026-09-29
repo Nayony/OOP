@@ -20,6 +20,17 @@ Delta DirectionDelta(Controls::keys cmd) {
         default:                     return {0, 0};
     }
 }
+//debug
+// static const char* DirName(Controls::keys cmd) {
+//     switch (cmd) {
+//         case Controls::keys::kUp:    return "Up";
+//         case Controls::keys::kDown:  return "Down";
+//         case Controls::keys::kLeft:  return "Left";
+//         case Controls::keys::kRight: return "Right";
+//         case Controls::keys::kNone:  return "None";
+//         default:                     return "Other";
+//     }
+// }
 void Game::DecreaseEnemyCount(){
     _enemy_robot_count--;
 }
@@ -42,7 +53,7 @@ void Game::Kill(Robot& robot) {
 }
 void Game::SetRobotPos(){
     for (int i = 0; i < _enemy_robot_count; ++i) {
-        Robot enemy(10, 1, 240, 4, true,2);
+        Robot enemy(10, 1, 240, 4, true,3);
         _map.FindFreeCell(enemy);
         _enemy_arr.push_back(enemy);
     }
@@ -88,9 +99,16 @@ void Game::MoveEnemyRobots(){
             }
         }
     }
-
+    //cout << "###" << "\n";
     ResetEnergy();
     _player_turn = true;
+}
+void Game::Pass(){
+    if (!_player_turn || _win || _lose) return;
+    _player_turn = false;
+    ResetEnergy();
+    MoveEnemyRobots();
+
 }
 void Game::Move(Controls::keys cmd) {
     if (!_player_turn || _win || _lose) return;
@@ -98,9 +116,7 @@ void Game::Move(Controls::keys cmd) {
         _map.SetVisibleToCells(_player);
         if (_win || _lose) return;
         if (_player.GetEnergy() <= 0) {
-            _player_turn = false;
-            ResetEnergy();
-            MoveEnemyRobots();
+            Pass();
         }
     }
 }
@@ -122,6 +138,8 @@ bool CalculateRobotSpeed(Robot& robot,const Cell& cell){
 
 
 bool Game::MoveRobot(Robot& robot, Controls::keys cmd) {
+    //if (robot.GetType() != _player.GetType()) {std::cout << "cmd: " << DirName(cmd) << "\n";}
+    
     if (cmd == Controls::keys::kNone) return false;
     Delta delta = DirectionDelta(cmd);
     if (delta.dx == 0 && delta.dy == 0) return false;

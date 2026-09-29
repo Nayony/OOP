@@ -8,7 +8,7 @@ using namespace std;
 #include <SFML/Graphics.hpp>
 
 int main(){
-    auto game = Game(5);
+    auto game = Game(4);
     Controls controls;
     sf::RenderWindow window(sf::VideoMode({1000, 1000}), "Baldur's Gate 4");
     Visualizer visualizer(game, window);
@@ -23,6 +23,9 @@ int main(){
             if (const auto* key = event->getIf<sf::Event::KeyPressed>()){
                 if (key->code == sf::Keyboard::Key::Escape){
                     window.close();
+                }
+                if (key->code == sf::Keyboard::Key::Space){
+                    game.Pass();
                 }
                 if (game.GetGameState() == "Playing"){
                     game.Move(controls.TranslateCmd(*key));
