@@ -123,7 +123,7 @@ void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<i
                     DrawCross(x, y, cell_size[0], cell_size[1], alpha);
                 }
                 else if (cell.GetCost() != 1) {
-                    fill = Color(0, 0, 255, alpha);
+                    fill = Color(161, 208, 252, alpha);
                 }
             }
 
