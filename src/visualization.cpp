@@ -15,19 +15,14 @@ void Visualizer::Draw(std::string game_state){
     const auto& cell_size = game_.GetMap().CalculateCellSize({int(1000-(2*_offset_x)),int(1000- (2*_offset_y))});
     const auto& grid = game_.GetMap().GetGrid();
 
-    if (game_state == "Win"){
-        Text text = Text{ font_, "You Win"};
-        text.setCharacterSize(100);
-        text.setFillColor(Color::Yellow);
-        text.setPosition({float(window_.getSize().x/2-text.getLocalBounds().size.x/2),float(window_.getSize().y/2-text.getLocalBounds().size.y)});
-        window_.draw(text);
-    }
-    else if(game_state == "Lose"){
-        Text text = Text{ font_, "You Lose"};
-        text.setCharacterSize(100);
-        text.setFillColor(Color::Blue);
-        text.setPosition({float(window_.getSize().x/2-text.getLocalBounds().size.x/2),float(window_.getSize().y/2-text.getLocalBounds().size.y)});
-        window_.draw(text);
+    
+    if (game_state == "Win" || game_state == "Lose") {
+    const bool win = (game_state == "Win");
+    Text text(font_, win ? "You Win" : "You Lose", 100);
+    text.setFillColor(win ? Color::Yellow : Color::Red);
+    text.setCharacterSize(100);
+    text.setPosition({float(window_.getSize().x/2-text.getLocalBounds().size.x/2),float(window_.getSize().y/2-text.getLocalBounds().size.y)});
+    window_.draw(text);
     }
     else{
         Visualizer::DrawCells(map_size, cell_size,grid);
