@@ -2,7 +2,7 @@
 #include <iostream>
 Game::Game(int _enemy_robot_count)
     : _enemy_robot_count(_enemy_robot_count),_map(12, 12, 10),
-    _player(8, 2, 240, 10, false, 333,2),_player_turn(true), _lose(false), _win(false), _factory()
+    _player(8, 2, 240, 10, false, 333,2),_player_turn(true), _lose(false), _win(false), _factory(), _turn(0)
 {
     if(_enemy_robot_count <= 0){
         _win = true;
@@ -132,6 +132,7 @@ void Game::FactoryTrySpawn(int turn){
         y = _factory.GetPosMain().Y();
         x = _factory.GetPosMain().X();
         Robot enemy(10, 1, 240, 4, true,3);
+        //todo Тут не хватает проверки на то что клетке свободна
         _map.GetCell({x+1,y}).SetOccupied(true);
         enemy.SetPos({x+1,y});
         _enemy_robot_count += 1;

@@ -26,7 +26,7 @@ class Cell{
         void SetOccupied(bool value);
         void SetFactory(bool value);
         void SetVisible(bool value);
-        void SetExploed(bool value);
+        void SetExplored(bool value);
 
         
 };

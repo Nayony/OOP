@@ -26,7 +26,7 @@ class Game{
         bool MoveRobot(Robot& robot, Controls::keys cmd);
     public:
         Game(int _enemy_robot_count);
-        void SetRobotPos();
+        void SetRobotPos(); //todo В map?
         const Map& GetMap() const;
         const Player& GetPlayer() const;
         const std::vector<Robot>& GetRobots() const;

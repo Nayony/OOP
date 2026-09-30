@@ -13,7 +13,6 @@ add_executable(MainTest
     src/robot.cpp
     src/cell.cpp
     src/player.cpp
-    src/enemy.cpp
     src/game.cpp
     src/visualization.cpp
     src/controls.cpp

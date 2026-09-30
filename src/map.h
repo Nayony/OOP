@@ -28,7 +28,7 @@ class Map{
         vector<int> RandomBlockedCells(vector<int>& indexses);
         //vector <int> RandomCostlyCells(vector<int>& indexes);
         void CellsForFactory(Factory &factory);
-        vector<vector<Cell>>& GetGrid();
+        vector<vector<Cell>>& GetGrid(); //todo убрать
         const vector<vector<Cell>>& GetGrid() const;
         Position ChangeIndexType(int index);
         Cell& GetCell(const Position& position);

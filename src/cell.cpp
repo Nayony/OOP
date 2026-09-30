@@ -17,7 +17,7 @@ void Cell::SetOccupied(bool value){
 void Cell::SetVisible(bool value){
     _is_visible = value;
 }
-void Cell::SetExploed(bool value){
+void Cell::SetExplored(bool value){
     _explored = value;
 }
 void Cell::SetFactory(bool value){

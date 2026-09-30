@@ -21,11 +21,13 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
     }
     _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false,1)));
     }
+    //todo перенести в визуал
     const vector<int> Map::CalculateCellSize(vector<int> window_size) const{
         int cell_width = (window_size[0]) / _width;
         int cell_height = (window_size[1]) / _height;
         return vector<int>{cell_width, cell_height};
     }
+
     const vector<int> Map::GetSize() const{ return {_width, _height};}
     vector<vector<Cell>>& Map::GetGrid() { return _grid;}
     const vector<vector<Cell>>& Map::GetGrid() const{ return _grid;}
@@ -39,6 +41,7 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         int value;
         static random_device rd;
         static mt19937 gen(rd());
+        //todo тут сделать выборр из индексов
         uniform_int_distribution<> distr(1,_width*_height);
         for (int i =0;i<_count_of_impassable;i++){
             value = distr(gen);
@@ -156,7 +159,7 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
             for (int x = 0; x < _width; ++x) {
                 if (ManhattanDistance(Position(x,y),player.GetPos()) <= player.GetVisibleRadius()){
                     _grid[y][x].SetVisible(true);
-                    _grid[y][x].SetExploed(true);
+                    _grid[y][x].SetExplored(true);
                 }
                 else{
                     _grid[y][x].SetVisible(false);
