@@ -52,46 +52,56 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
     }
     Cell& Map::GetCell(const Position& position) { return _grid[position.Y()][position.X()]; }
     const Cell& Map::GetCell(const Position& position) const { return _grid[position.Y()][position.X()]; }
-    void Map::FindFreeCell(Robot& robot){
-        if (robot.GetType() == true){
-            for (int y = _height - 1; y >= 0; y -=2 ) {
-                for (int x = _width - 1; x >= 0; x -= 2) {
-                    if (_grid[y][x].GetPassable() == true and _grid[y][x].GetOccupied() == false){
-                        for(int i = y-1; i <= y+1; ++i){
-                            for(int j = x-1; j <= x+1; ++j){
-                                if (i < 0 || i >= _height || j < 0 || j >= _width) continue;
-                                if (_grid[i][j].GetPassable() == true and _grid[i][j].GetOccupied() == false){
-                                    robot.SetPos(Position(x, y));
-                                    _grid[y][x].SetOccupied(true);
-                                    return;
-                                }
-                            }
+    void Map::FindFreeCell(Robot& robot) {
+        bool from_end = robot.GetType();
+        int step = from_end ? -2 : 1;
+        int x0 = from_end ? _width - 1 : 0;
+        int y0 = from_end ? _height - 1 : 0;
+        for (int y = y0; y >= 0 && y < _height; y += step) {
+            for (int x = x0; x >= 0 && x < _width; x += step) {
+                if (!_grid[y][x].GetPassable() || _grid[y][x].GetOccupied()) continue;
+                for (int i = y - 1; i <= y + 1; ++i) {
+                    for (int j = x - 1; j <= x + 1; ++j) {
+                        if (i < 0 || i >= _height || j < 0 || j >= _width) continue;
+                        if (i == y && j == x) continue; 
+                        if (_grid[i][j].GetPassable() && !_grid[i][j].GetOccupied()) {
+                            robot.SetPos(Position(x, y));
+                            _grid[y][x].SetOccupied(true);
+                            return;
                         }
-
-                    }
-                }
-            }
-        }
-        else{
-            for (int y = 0; y < _height; y++) {
-                for (int x = 0; x < _width; x++) {
-                    if (_grid[y][x].GetPassable() == true and _grid[y][x].GetOccupied() == false){
-                        for(int i = y-1; i <= y+1; ++i){
-                            for(int j = x-1; j <= x+1; ++j){
-                                if (i < 0 || i >= _height || j < 0 || j >= _width) continue;
-                                if (_grid[i][j].GetPassable() == true and _grid[i][j].GetOccupied() == false){
-                                    robot.SetPos(Position(x, y));
-                                    _grid[y][x].SetOccupied(true);
-                                    return;
-                                }
-                            }
-                        }
-
                     }
                 }
             }
         }
     }
+    void Map::CellsForFactory(Factory &factory){
+        bool res = true;
+        for (int y = _height - 1; y >= 0; y -=1) {
+            for (int x = _width - 1; x >= 0; x -= 1) {
+                if((IsFree({x,y}) && IsOccupied({x,y}) == false) && ((IsFree({x+1,y}) && IsOccupied({x+1,y}) == false))){
+                res = true;
+                for(int i = y; i >= y-1; --i){
+                    for(int j = x-1; j <= x; ++j){
+                        if(!(IsFree({j,i}) && IsOccupied({j,i}) == false)){
+                            res = false;
+                            break;
+                }
+                            }
+                        }
+                        if (res == true) {
+                            factory.SetPosMain({x,y});
+                            _grid[y][x].SetFactory(true);
+                            _grid[y-1][x].SetFactory(true);
+                            _grid[y-1][x-1].SetFactory(true);
+                            _grid[y][x-1].SetFactory(true);
+                            //cout << " столбец " << x << " cтрока " << y;
+                            break;
+                        }
+            }
+        }
+        if (res == true) {break;}
+    }
+}
     bool Map::IsFree(const Position& position) const{
         if (position.X() < 0 or position.Y() < 0 or position.X() >= _width or position.Y() >= _height){
             return false;

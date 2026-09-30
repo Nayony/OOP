@@ -8,7 +8,7 @@ using namespace std;
 #include <SFML/Graphics.hpp>
 
 int main(){
-    auto game = Game(4);
+    auto game = Game(1);
     Controls controls;
     sf::RenderWindow window(sf::VideoMode({1000, 1000}), "Baldur's Gate 4");
     Visualizer visualizer(game, window);

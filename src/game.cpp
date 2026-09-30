@@ -2,10 +2,14 @@
 #include <iostream>
 Game::Game(int _enemy_robot_count)
     : _enemy_robot_count(_enemy_robot_count),_map(12, 12, 10),
-    _player(8, 2, 240, 10, false, 3,2),_player_turn(true), _lose(false), _win(false)
+    _player(8, 2, 240, 10, false, 333,2),_player_turn(true), _lose(false), _win(false), _factory()
 {
+    if(_enemy_robot_count <= 0){
+        _win = true;
+    }
     _map.CreateGrid();
     SetRobotPos();
+    _map.CellsForFactory(_factory);
     _map.SetVisibleToCells(_player);
 }
 
@@ -59,6 +63,7 @@ void Game::SetRobotPos(){
     }
     _map.FindFreeCell(_player);
 }
+
 Robot& Game::WhoOccupies(const Position& position){
     if (_player.GetPos().X() == position.X() and _player.GetPos().Y() == position.Y()){
         return _player;
@@ -100,15 +105,38 @@ void Game::MoveEnemyRobots(){
         }
     }
     //cout << "###" << "\n";
+    EndTurn();
+
+}
+void Game::EndTurn(){
+    if (_player_turn == false){
+        _player_turn = true;
+    }
+    else{
+        _player_turn = false;
+        MoveEnemyRobots();
+    }
     ResetEnergy();
-    _player_turn = true;
+    _turn+= 1;
+    FactoryTrySpawn(_turn);
 }
 void Game::Pass(){
     if (!_player_turn || _win || _lose) return;
-    _player_turn = false;
-    ResetEnergy();
-    MoveEnemyRobots();
+    EndTurn();
 
+}
+void Game::FactoryTrySpawn(int turn){
+    int y;
+    int x;
+    if (turn%10 == 0){
+        y = _factory.GetPosMain().Y();
+        x = _factory.GetPosMain().X();
+        Robot enemy(10, 1, 240, 4, true,3);
+        _map.GetCell({x+1,y}).SetOccupied(true);
+        enemy.SetPos({x+1,y});
+        _enemy_robot_count += 1;
+        _enemy_arr.push_back(enemy);
+    }
 }
 void Game::Move(Controls::keys cmd) {
     if (!_player_turn || _win || _lose) return;

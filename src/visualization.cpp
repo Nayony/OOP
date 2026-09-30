@@ -114,7 +114,10 @@ void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<i
 
             Color fill = Color::Transparent;
             if (seen) {
-                if (!cell.GetPassable()) {
+                if (cell.GetFactory() == true) {
+                    fill = Color(255, 255, 0, alpha);
+                }
+                else if (!cell.GetPassable()) {
                     DrawCross(x, y, cell_size[0], cell_size[1], alpha);
                 }
                 else if (cell.GetCost() != 1) {

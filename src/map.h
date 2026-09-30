@@ -5,6 +5,7 @@
 #include "cell.h"
 #include "position.h"
 #include "player.h"
+#include "factory.h"
 #include <algorithm>
 #include <vector>
 #include <iostream>
@@ -26,6 +27,7 @@ class Map{
         vector<vector<Cell>> CreateGrid();
         vector<int> RandomBlockedCells(vector<int>& indexses);
         //vector <int> RandomCostlyCells(vector<int>& indexes);
+        void CellsForFactory(Factory &factory);
         vector<vector<Cell>>& GetGrid();
         const vector<vector<Cell>>& GetGrid() const;
         Position ChangeIndexType(int index);

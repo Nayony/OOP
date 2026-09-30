@@ -19,6 +19,7 @@ add_executable(MainTest
     src/controls.cpp
     src/position.h
     src/position.cpp
+    src/factory.cpp
 )
 
 target_link_libraries(MainTest PRIVATE
