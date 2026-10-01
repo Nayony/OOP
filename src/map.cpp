@@ -1,6 +1,8 @@
 #include "map.h"
+#include <algorithm>
+#include <cstdlib>
+#include <random>
 
-using namespace std;
 Map::Map(int _w,int _h,int _cnt_of_impassable)
     : _width(_w), _height(_h), _count_of_impassable(_cnt_of_impassable)
     {
@@ -16,35 +18,28 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
     else if(_height > 16){
         _height = 16;
     }
-    if (_count_of_impassable > min(_width,_height) - 1){
-        _count_of_impassable = min(_width,_height) - 1;
+    if (_count_of_impassable > std::min(_width,_height) - 1){
+        _count_of_impassable = std::min(_width,_height) - 1;
     }
-    _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false,1)));
+    _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,false,1)));
     }
     //todo перенести в визуал
-    const vector<int> Map::CalculateCellSize(vector<int> window_size) const{
-        int cell_width = (window_size[0]) / _width;
-        int cell_height = (window_size[1]) / _height;
-        return vector<int>{cell_width, cell_height};
-    }
 
-    const vector<int> Map::GetSize() const{ return {_width, _height};}
-    vector<vector<Cell>>& Map::GetGrid() { return _grid;}
-    const vector<vector<Cell>>& Map::GetGrid() const{ return _grid;}
+    const std::vector<int> Map::GetSize() const{ return {_width, _height};}
+    const std::vector<std::vector<Cell>>& Map::GetGrid() const{ return _grid;}
     Position Map::ChangeIndexType(int index){
         int row = index / _width;
         int col = index % _width;
         return Position(col, row);
     }
-    vector <int> Map::RandomBlockedCells(vector<int>& indexes){
-        vector<int> nums;
+    std::vector<int> Map::RandomBlockedCells(std::vector<int>& indexes){
+        std::vector<int> nums;
         int value;
-        static random_device rd;
-        static mt19937 gen(rd());
-        //todo тут сделать выборр из индексов
-        uniform_int_distribution<> distr(1,_width*_height);
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
         for (int i =0;i<_count_of_impassable;i++){
-            value = distr(gen);
+            std::uniform_int_distribution<> distr(0,(int)indexes.size()-1);
+            value = indexes[distr(gen)];
             auto pi = std::find(indexes.begin(), indexes.end(), value);
             if (pi != indexes.end()) {
                 indexes.erase(pi);
@@ -120,10 +115,10 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         }
         return false;
     }
-    vector<vector<Cell>> Map::CreateGrid(){
-        _grid.assign(_height, vector<Cell>(_width, Cell(false,false,false,1)));
+    std::vector<std::vector<Cell>> Map::CreateGrid(){
+        _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,false,1)));
 
-        vector<int> all_indexes;
+        std::vector<int> all_indexes;
         all_indexes.reserve(_width * _height);
         for (int i = 1; i <= _width * _height; ++i) {
             all_indexes.push_back(i);
@@ -136,10 +131,10 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
             for (int j = 0; j < _width; ++j) {
                 const int cell_index = i * _width + j + 1;
 
-                if (find(blocked.begin(), blocked.end(), cell_index) != blocked.end()) {
+                if (std::find(blocked.begin(), blocked.end(), cell_index) != blocked.end()) {
                     _grid[i][j] = Cell(true, false, false, 1);
                 }
-                else if (find(costly.begin(), costly.end(), cell_index) != costly.end()) {
+                else if (std::find(costly.begin(), costly.end(), cell_index) != costly.end()) {
                     _grid[i][j] = Cell(false, false, false, 2);
                 }
                 else {
@@ -151,7 +146,7 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         return _grid;
     }
     int Map::ManhattanDistance(const Position &position1,const Position &position2){
-        return abs(position1.X() -position2.X()) + abs(position1.Y() -position2.Y());
+        return std::abs(position1.X() -position2.X()) + std::abs(position1.Y() -position2.Y());
     }
 
     void Map::SetVisibleToCells(const Player& player){

@@ -1,8 +1,7 @@
 #include "game.h"
-#include <iostream>
 Game::Game(int _enemy_robot_count)
     : _enemy_robot_count(_enemy_robot_count),_map(12, 12, 10),
-    _player(8, 2, 240, 10, false, 333,2),_player_turn(true), _lose(false), _win(false), _factory(), _turn(0)
+    _player(8, 2, 240, 10, false, 3,2),_player_turn(true), _lose(false), _win(false), _factory(), _turn(0)
 {
     if(_enemy_robot_count <= 0){
         _win = true;
@@ -113,11 +112,11 @@ void Game::EndTurn(){
         _player_turn = true;
     }
     else{
+        _turn+= 1;
         _player_turn = false;
         MoveEnemyRobots();
     }
     ResetEnergy();
-    _turn+= 1;
     FactoryTrySpawn(_turn);
 }
 void Game::Pass(){
@@ -128,15 +127,16 @@ void Game::Pass(){
 void Game::FactoryTrySpawn(int turn){
     int y;
     int x;
-    if (turn%10 == 0){
+    if (turn%_factory.GetSpawnPeriod() == 0){
         y = _factory.GetPosMain().Y();
         x = _factory.GetPosMain().X();
-        Robot enemy(10, 1, 240, 4, true,3);
-        //todo Тут не хватает проверки на то что клетке свободна
-        _map.GetCell({x+1,y}).SetOccupied(true);
-        enemy.SetPos({x+1,y});
-        _enemy_robot_count += 1;
-        _enemy_arr.push_back(enemy);
+        if (_map.IsFree({x+1,y}) && _map.IsOccupied({x+1,y}) == false){
+            Robot enemy(10, 1, 240, 4, true,3);
+            _map.GetCell({x+1,y}).SetOccupied(true);
+            enemy.SetPos({x+1,y});
+            _enemy_robot_count += 1;
+            _enemy_arr.push_back(enemy);
+        }
     }
 }
 void Game::Move(Controls::keys cmd) {

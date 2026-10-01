@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SFML 3 COMPONENTS Graphics Window System REQUIRED)
 
 add_executable(MainTest
+    src/application.cpp
     src/main.cpp
     src/map.cpp
     src/robot.cpp

@@ -12,7 +12,7 @@
 
 
 class Game{
-    protected:
+    private:
         int _enemy_robot_count;
         int _turn;
         Map _map;
@@ -22,11 +22,10 @@ class Game{
         bool _player_turn;
         bool _win;
         bool _lose;
-    private:
         bool MoveRobot(Robot& robot, Controls::keys cmd);
     public:
         Game(int _enemy_robot_count);
-        void SetRobotPos(); //todo В map?
+        void SetRobotPos();
         const Map& GetMap() const;
         const Player& GetPlayer() const;
         const std::vector<Robot>& GetRobots() const;

@@ -1,6 +1,5 @@
 #include "cell.h"
-#include <algorithm>
-#include <vector>
+
 
 Cell::Cell(bool _is_impassable, bool _is_occupied, bool _is_visible, int _cost)
     : _is_impassable(_is_impassable), _is_occupied(_is_occupied), _is_visible(_is_visible), _explored(false),

@@ -6,12 +6,15 @@
 
 
 class Factory{
-    protected:
+    private:
     Position _posMain;
+    int _spawnPeriod;
     public:
         Factory();
         const Position GetPosMain () const;
         void SetPosMain(const Position& position);
+        void SetSpawnPeriod(int value);
+        const int GetSpawnPeriod() const;
 };
     
 

@@ -3,10 +3,11 @@
 #ifndef CELL
 #define CELL
 
+#include <algorithm>
 #include <vector>
 
 class Cell{
-    protected:
+    private:
     bool _is_impassable;
     bool _is_occupied;
     bool _is_visible;

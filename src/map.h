@@ -6,30 +6,22 @@
 #include "position.h"
 #include "player.h"
 #include "factory.h"
-#include <algorithm>
 #include <vector>
-#include <iostream>
-#include <random>
-
-using namespace std;
 
 class Robot;
 
 class Map{
-    protected:
+    private:
         int _width,_height,_count_of_impassable;
-        vector<int> _banned_cells;
-        vector<vector<Cell>> _grid;
+        std::vector<int> _banned_cells;
+        std::vector<std::vector<Cell>> _grid;
     public:
         Map(int _width, int _height,int _count_of_impassable);
-        const vector<int> CalculateCellSize(vector<int> window_size) const;
-        const vector<int> GetSize() const;
-        vector<vector<Cell>> CreateGrid();
-        vector<int> RandomBlockedCells(vector<int>& indexses);
-        //vector <int> RandomCostlyCells(vector<int>& indexes);
+        const std::vector<int> GetSize() const;
+        std::vector<std::vector<Cell>> CreateGrid();
+        std::vector<int> RandomBlockedCells(std::vector<int>& indexses);
         void CellsForFactory(Factory &factory);
-        vector<vector<Cell>>& GetGrid(); //todo убрать
-        const vector<vector<Cell>>& GetGrid() const;
+        const std::vector<std::vector<Cell>>& GetGrid() const;
         Position ChangeIndexType(int index);
         Cell& GetCell(const Position& position);
         const Cell& GetCell(const Position& position) const;
@@ -39,6 +31,4 @@ class Map{
         void SetVisibleToCells(const Player& player);
         int ManhattanDistance(const Position &position1,const Position &position2);
 };
-    
-
 #endif
