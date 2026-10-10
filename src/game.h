@@ -31,10 +31,10 @@ class Game{
         const std::vector<Robot>& GetRobots() const;
         void Move(Controls::keys cmd);
         bool interaction(Robot &main, Robot &other);
-        Robot& WhoOccupies(const Position& position); //todo в map
+        Robot& WhoOccupies(const Position& position);
         void DecreaseEnemyCount();
         void Kill(Robot& robot);
-        void ResetEnergy();
+        void ResetTurnResources();
         Controls::keys RandomDirection();
         void MoveEnemyRobots();
         void Pass();

@@ -7,9 +7,9 @@
 
 class Visualizer{
     private:
-    const Game& game_;
-    sf::RenderWindow& window_;
-    sf::Font font_;
+    const Game& _game;
+    sf::RenderWindow& _window;
+    sf::Font _font;
     float _offset_x,_offset_y;
     public:
         Visualizer(const Game& game, sf::RenderWindow& window);

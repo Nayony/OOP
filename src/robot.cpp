@@ -17,6 +17,15 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
             _hp = 0;
         }
     }
+    void Robot::AddHp(int value){
+        _hp += value;
+        if (_hp > _max_hp){
+            _hp = _max_hp;
+        }
+        if (_hp < 0){
+            _hp = 0;
+        }
+    }
     void Robot::SetPos(const Position& position){
         _position = position;
     }
@@ -25,37 +34,65 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
             _energy = _max_energy;
         }
         else if (value < 0){
-            _energy = _max_energy;
+            _energy = 0;
         }
         else if (value>=0){
             _energy = value;
         }
     }
+    void Robot::AddEnergy(int value){
+        _energy += value;
+        if (_energy > _max_energy){
+            _energy = _max_energy;
+        }
+        if (_energy < 0){
+            _energy = 0;
+        }
+    }
     void Robot ::SetSpeed(int value){
-        if (value < 0 || value > _max_speed){
+        if (value < 0){
+            _speed = 0;
+        }
+        else if (value > _max_speed){
             _speed = _max_speed;
         }
         else{
             _speed = value;
         }
     }
+    void Robot::AddSpeed(int value){
+        _speed += value;
+        if (_speed > _max_speed){
+            _speed = _max_speed;
+        }
+        if (_speed < 0){
+            _speed = 0;
+        }
+    }
+    void Robot::ResetSpeed(){
+        _speed = _max_speed;
+    }
+    void Robot::ResetTurnResources(){
+        _energy = _max_energy;
+        _speed = _max_speed;
+    }
     void Robot::IncreaseMaxHp(int value){
         _max_hp += value;
     }
-    void Robot ::SetLvl(){
+    void Robot::ProcessLevelUps(){
         while (_xp >= _xp_to_lvlup){
             _xp -= _xp_to_lvlup;
             _current_lvl += 1;
-            IncreaseMaxHp(2);
-            SetHp(GetHp() + 5);
+            IncreaseMaxHp(RobotSettings::MaxHpPerLevel);
+            AddHp(RobotSettings::CurrentHpPerLevel);
         }
     }
-    void Robot ::SetXp(int value){
+    void Robot::AddXp(int value){
         if (value>0){
             _xp += value;
         }
         if (_xp >= _xp_to_lvlup){
-            SetLvl();
+            ProcessLevelUps();
         }
     }
     void Robot ::SetEnemy(bool value){

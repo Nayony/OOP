@@ -10,7 +10,7 @@ class Factory{
     Position _posMain;
     int _spawnPeriod;
     public:
-        Factory();
+        Factory(int spawnPeriod);
         const Position GetPosMain () const;
         void SetPosMain(const Position& position);
         void SetSpawnPeriod(int value);

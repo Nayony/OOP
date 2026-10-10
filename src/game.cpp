@@ -1,7 +1,11 @@
 #include "game.h"
+#include "constants.h"
 Game::Game(int _enemy_robot_count)
-    : _enemy_robot_count(_enemy_robot_count),_map(12, 12, 10),
-    _player(8, 2, 240, 10, false, 3,2),_player_turn(true), _lose(false), _win(false), _factory(), _turn(0)
+        : _enemy_robot_count(_enemy_robot_count),
+            _map(MapSettings::InitialWidth, MapSettings::InitialHeight, MapSettings::InitialBlockedCellCount),
+            _player(PlayerSettings::MaxHp, PlayerSettings::MaxEnergy, PlayerSettings::XpToLevel,
+                            PlayerSettings::Damage, false, PlayerSettings::VisibilityRadius, PlayerSettings::MaxSpeed),
+            _player_turn(true), _lose(false), _win(false), _factory(FactorySettings::SpawnPeriod), _turn(0)
 {
     if(_enemy_robot_count <= 0){
         _win = true;
@@ -23,17 +27,7 @@ Delta DirectionDelta(Controls::keys cmd) {
         default:                     return {0, 0};
     }
 }
-//debug
-// static const char* DirName(Controls::keys cmd) {
-//     switch (cmd) {
-//         case Controls::keys::kUp:    return "Up";
-//         case Controls::keys::kDown:  return "Down";
-//         case Controls::keys::kLeft:  return "Left";
-//         case Controls::keys::kRight: return "Right";
-//         case Controls::keys::kNone:  return "None";
-//         default:                     return "Other";
-//     }
-// }
+
 void Game::DecreaseEnemyCount(){
     _enemy_robot_count--;
 }
@@ -43,9 +37,10 @@ void Game::Kill(Robot& robot) {
         _lose = true;
     }
     auto it = std::find_if(_enemy_arr.begin(), _enemy_arr.end(),
-                            [&robot](const Robot& r) { return &r == &robot; }); //Еще раз разобраться с этим
+                            [&robot](const Robot& r) { return &r == &robot; });
 
     if (it != _enemy_arr.end()) {
+        _map.GetCell(robot.GetPos()).SetOccupied(false);
         DecreaseEnemyCount();
         _enemy_arr.erase(it);
         if (_enemy_robot_count == 0) {
@@ -56,7 +51,9 @@ void Game::Kill(Robot& robot) {
 }
 void Game::SetRobotPos(){
     for (int i = 0; i < _enemy_robot_count; ++i) {
-        Robot enemy(10, 1, 240, 4, true,3);
+        Robot enemy(RobotSettings::EnemyMaxHp, RobotSettings::EnemyMaxEnergy,
+                RobotSettings::EnemyXpToLevel, RobotSettings::EnemyDamage, true,
+                RobotSettings::EnemyMaxSpeed);
         _map.FindFreeCell(enemy);
         _enemy_arr.push_back(enemy);
     }
@@ -81,12 +78,10 @@ Controls::keys Game::RandomDirection() {
     std::uniform_int_distribution<int> dist(0, static_cast<int>(Controls::keys::kDown));
     return static_cast<Controls::keys>(dist(gen));
 }
-void Game::ResetEnergy(){
-    _player.SetEnergy(-1);
-    _player.SetSpeed(-1);
+void Game::ResetTurnResources(){
+    _player.ResetTurnResources();
     for (Robot& robot : _enemy_arr) {
-        robot.SetEnergy(-1);
-        robot.SetSpeed(-1);
+        robot.ResetTurnResources();
     }
 }
 void Game::MoveEnemyRobots(){
@@ -94,7 +89,7 @@ void Game::MoveEnemyRobots(){
 
     for (Robot& robot : _enemy_arr) {
         int attempts = 0;
-        while (robot.GetEnergy() > 0 && attempts < 10 && !_lose) {
+        while (robot.GetEnergy() > 0 && attempts < RobotSettings::MaxFailedMoveAttempts && !_lose) {
             if (MoveRobot(robot, RandomDirection())) {
                 attempts = 0;
             }
@@ -103,21 +98,20 @@ void Game::MoveEnemyRobots(){
             }
         }
     }
-    //cout << "###" << "\n";
     EndTurn();
 
 }
 void Game::EndTurn(){
     if (_player_turn == false){
         _player_turn = true;
+        ResetTurnResources();
+        FactoryTrySpawn(_turn);
     }
     else{
-        _turn+= 1;
+        _turn += 1;
         _player_turn = false;
-        MoveEnemyRobots();
+        MoveEnemyRobots(); 
     }
-    ResetEnergy();
-    FactoryTrySpawn(_turn);
 }
 void Game::Pass(){
     if (!_player_turn || _win || _lose) return;
@@ -130,12 +124,14 @@ void Game::FactoryTrySpawn(int turn){
     if (turn%_factory.GetSpawnPeriod() == 0){
         y = _factory.GetPosMain().Y();
         x = _factory.GetPosMain().X();
-        if (_map.IsFree({x+1,y}) && _map.IsOccupied({x+1,y}) == false){
-            Robot enemy(10, 1, 240, 4, true,3);
-            _map.GetCell({x+1,y}).SetOccupied(true);
-            enemy.SetPos({x+1,y});
-            _enemy_robot_count += 1;
-            _enemy_arr.push_back(enemy);
+        if (auto pos = _map.FindFreeNear(_factory)) {
+        Robot enemy(RobotSettings::EnemyMaxHp, RobotSettings::EnemyMaxEnergy,
+                RobotSettings::EnemyXpToLevel, RobotSettings::EnemyDamage, true,
+                RobotSettings::EnemyMaxSpeed);
+        enemy.SetPos(*pos);
+        _map.GetCell(*pos).SetOccupied(true);
+        _enemy_robot_count += 1;
+        _enemy_arr.push_back(enemy);
         }
     }
 }
@@ -152,14 +148,14 @@ void Game::Move(Controls::keys cmd) {
 
 bool CalculateRobotSpeed(Robot& robot,const Cell& cell){
     const int cost = cell.GetCost();
-    if (robot.GetSpeed() < cost) {
+    if (cost == -1 || robot.GetSpeed() < cost) {
         return false;
     }
 
-    robot.SetSpeed(robot.GetSpeed() - cost);
+    robot.AddSpeed(-cost);
     if (robot.GetSpeed() == 0) {
-        robot.SetSpeed(-1);
-        robot.SetEnergy(robot.GetEnergy() - 1);
+        robot.ResetSpeed();
+        robot.AddEnergy(-1);
     }
 
     return true;
@@ -167,7 +163,6 @@ bool CalculateRobotSpeed(Robot& robot,const Cell& cell){
 
 
 bool Game::MoveRobot(Robot& robot, Controls::keys cmd) {
-    //if (robot.GetType() != _player.GetType()) {std::cout << "cmd: " << DirName(cmd) << "\n";}
     
     if (cmd == Controls::keys::kNone) return false;
     Delta delta = DirectionDelta(cmd);
@@ -180,9 +175,8 @@ bool Game::MoveRobot(Robot& robot, Controls::keys cmd) {
 
         auto& other_robot = WhoOccupies(new_position);
         if (!interaction(robot, other_robot)) {
-            robot.SetXp(80);
+            robot.AddXp(GameSettings::XpForKill);
             Kill(other_robot);
-            _map.GetCell(new_position).SetOccupied(false);
         }
         return true;
     }
@@ -197,16 +191,16 @@ bool Game::MoveRobot(Robot& robot, Controls::keys cmd) {
     }
 }
 bool Game::interaction(Robot& main,Robot &other){
-    main.SetEnergy(main.GetEnergy() - 1);
+    main.AddEnergy(-1);
     if (main.GetType() != other.GetType()){
-        other.SetHp(other.GetHp() - main.GetDamage());
+        other.AddHp(-main.GetDamage());
         if (other.GetHp() <= 0){
             return false;
         }
     }
     else{
         if (main.GetDamage() > 0){
-            other.SetHp(other.GetHp() + main.GetDamage());
+            other.AddHp(main.GetDamage());
         }
     }
     return true;

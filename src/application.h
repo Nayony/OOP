@@ -3,12 +3,13 @@
 
 #include "controls.h"
 #include <SFML/Graphics.hpp>
+#include "constants.h"
 #include "game.h"
 #include "visualization.h"
 
 class Application {
 public:
-    Application(int enemy_robot_count = 1);
+    Application(int enemy_robot_count = ApplicationSettings::DefaultEnemyCount);
     void run();
     void Restart();
 private:

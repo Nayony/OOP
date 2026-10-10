@@ -4,8 +4,8 @@
 Application::Application(int enemy_robot_count)
 	: _enemy_robot_count(enemy_robot_count),
 	  _game(enemy_robot_count),
-      _win_x(1300), _win_y(1300),
-	  _window(sf::VideoMode({_win_x, _win_y}), "Baldur's Gate 4"),
+	_win_x(ApplicationSettings::WindowWidth), _win_y(ApplicationSettings::WindowHeight),
+	_window(sf::VideoMode({_win_x, _win_y}), ApplicationSettings::WindowTitle),
 	  _visualizer(_game, _window)
 {
 }
@@ -36,7 +36,8 @@ void Application::run()
 			}
 		}
 
-		_window.clear(sf::Color::Black);
+		_window.clear({VisualSettings::BackgroundColor.red, VisualSettings::BackgroundColor.green,
+			       VisualSettings::BackgroundColor.blue, VisualSettings::BackgroundColor.alpha});
 		_visualizer.Draw(_game.GetGameState(),_win_x,_win_y);
 		_window.display();
 	}

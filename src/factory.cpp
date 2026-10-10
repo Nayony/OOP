@@ -1,9 +1,10 @@
 #include "factory.h"
-Factory::Factory()
-    : _posMain(0,0), _spawnPeriod(5)
+#include "constants.h"
+Factory::Factory(int spawnPeriod)
+    : _posMain(0,0), _spawnPeriod(spawnPeriod)
 {
     if (_spawnPeriod <= 0){
-        _spawnPeriod = 5;
+        _spawnPeriod = FactorySettings::SpawnPeriod;
     }
 }
 

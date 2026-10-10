@@ -3,41 +3,35 @@
 #include <cstdlib>
 #include <random>
 
-Map::Map(int _w,int _h,int _cnt_of_impassable)
-    : _width(_w), _height(_h), _count_of_impassable(_cnt_of_impassable)
+Map::Map(int _w,int _h,int _count_of_blocked)
+    : _width(_w), _height(_h), _count_of_blocked(_count_of_blocked)
     {
-    if (_width < 12){
-        _width = 12;
+    if (_width < MapSettings::MinWidth){
+        _width = MapSettings::MinWidth;
     }
-    else if(_width > 16){
-        _width = 16;
+    else if(_width > MapSettings::MaxWidth){
+        _width = MapSettings::MaxWidth;
     }
-    if (_height < 12){
-        _height = 12;
+    if (_height < MapSettings::MinHeight){
+        _height = MapSettings::MinHeight;
     }
-    else if(_height > 16){
-        _height = 16;
+    else if(_height > MapSettings::MaxHeight){
+        _height = MapSettings::MaxHeight;
     }
-    if (_count_of_impassable > std::min(_width,_height) - 1){
-        _count_of_impassable = std::min(_width,_height) - 1;
+    if (_count_of_blocked > std::min(_width,_height) - 1){
+        _count_of_blocked = std::min(_width,_height) - 1;
     }
-    _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,false,1)));
+    _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,1)));
     }
-    //todo перенести в визуал
 
     const std::vector<int> Map::GetSize() const{ return {_width, _height};}
     const std::vector<std::vector<Cell>>& Map::GetGrid() const{ return _grid;}
-    Position Map::ChangeIndexType(int index){
-        int row = index / _width;
-        int col = index % _width;
-        return Position(col, row);
-    }
     std::vector<int> Map::RandomBlockedCells(std::vector<int>& indexes){
         std::vector<int> nums;
         int value;
         static std::random_device rd;
         static std::mt19937 gen(rd());
-        for (int i =0;i<_count_of_impassable;i++){
+        for (int i =0;i<_count_of_blocked;i++){
             std::uniform_int_distribution<> distr(0,(int)indexes.size()-1);
             value = indexes[distr(gen)];
             auto pi = std::find(indexes.begin(), indexes.end(), value);
@@ -50,61 +44,90 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
     }
     Cell& Map::GetCell(const Position& position) { return _grid[position.Y()][position.X()]; }
     const Cell& Map::GetCell(const Position& position) const { return _grid[position.Y()][position.X()]; }
-    void Map::FindFreeCell(Robot& robot) {
-        bool from_end = robot.GetType();
-        int step = from_end ? -2 : 1;
-        int x0 = from_end ? _width - 1 : 0;
-        int y0 = from_end ? _height - 1 : 0;
-        for (int y = y0; y >= 0 && y < _height; y += step) {
-            for (int x = x0; x >= 0 && x < _width; x += step) {
-                if (!_grid[y][x].GetPassable() || _grid[y][x].GetOccupied()) continue;
-                for (int i = y - 1; i <= y + 1; ++i) {
-                    for (int j = x - 1; j <= x + 1; ++j) {
-                        if (i < 0 || i >= _height || j < 0 || j >= _width) continue;
-                        if (i == y && j == x) continue; 
-                        if (_grid[i][j].GetPassable() && !_grid[i][j].GetOccupied()) {
-                            robot.SetPos(Position(x, y));
-                            _grid[y][x].SetOccupied(true);
-                            return;
-                        }
-                    }
-                }
-            }
+    // попрощу написать в тройной цикл;
+bool Map::IsAvailable(const Position& pos) const {
+    if (pos.X() < 0 || pos.Y() < 0 || pos.X() >= _width || pos.Y() >= _height) return false;
+    return IsFree(pos) && !IsOccupied(pos);
+}
+
+bool Map::HasFreeNeighbor(int x, int y) const {
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            if (IsAvailable({x + dx, y + dy})) return true;
         }
     }
-    void Map::CellsForFactory(Factory &factory){
-        bool res = true;
-        for (int y = _height - 1; y >= 0; y -=1) {
-            for (int x = _width - 1; x >= 0; x -= 1) {
-                if((IsFree({x,y}) && IsOccupied({x,y}) == false) && ((IsFree({x+1,y}) && IsOccupied({x+1,y}) == false))){
-                res = true;
-                for(int i = y; i >= y-1; --i){
-                    for(int j = x-1; j <= x; ++j){
-                        if(!(IsFree({j,i}) && IsOccupied({j,i}) == false)){
-                            res = false;
-                            break;
-                }
-                            }
-                        }
-                        if (res == true) {
-                            factory.SetPosMain({x,y});
-                            _grid[y][x].SetFactory(true);
-                            _grid[y-1][x].SetFactory(true);
-                            _grid[y-1][x-1].SetFactory(true);
-                            _grid[y][x-1].SetFactory(true);
-                            //cout << " столбец " << x << " cтрока " << y;
-                            break;
-                        }
-            }
+    return false;
+}
+
+void Map::FindFreeCell(Robot& robot) {
+    const bool from_end = robot.GetType();
+    const int step = from_end ? MapSettings::EnemySearchStride : 1;
+    const int start_x = from_end ? _width - 1 : 0;
+    const int start_y = from_end ? _height - 1 : 0;
+
+    for (int y = start_y; y >= 0 && y < _height; y += step) {
+        for (int x = start_x; x >= 0 && x < _width; x += step) {
+            if (!IsAvailable({x, y}) || !HasFreeNeighbor(x, y)) continue;
+
+            robot.SetPos(Position(x, y));
+            _grid[y][x].SetOccupied(true);
+            return;
         }
-        if (res == true) {break;}
     }
+}
+
+bool Map::IsAreaAvailable(const Position& main) const {
+    for (int dy = 0; dy < MapSettings::FactorySize; ++dy)
+        for (int dx = 0; dx < MapSettings::FactorySize; ++dx)
+            if (!IsAvailable({main.X() - dx, main.Y() - dy})) return false;
+    return true;
+}
+
+void Map::MarkFactoryArea(const Position& main) {
+    for (int dy = 0; dy < MapSettings::FactorySize; ++dy)
+        for (int dx = 0; dx < MapSettings::FactorySize; ++dx)
+            _grid[main.Y() - dy][main.X() - dx].SetFactory(true);
+}
+
+bool Map::CellsForFactory(Factory& factory) {
+    const int size = MapSettings::FactorySize;
+
+    for (int y = _height - 1; y >= size - 1; --y) {
+        for (int x = _width - 1; x >= size - 1; --x) {
+            const Position main(x, y);
+            if (!IsAreaAvailable(main)) continue;
+
+            factory.SetPosMain(main);
+            MarkFactoryArea(main);
+            return true;
+        }
+    }
+    return false;
+}
+
+std::optional<Position> Map::FindFreeAround(const Position& anchor, int size, int step) const {
+    for (int dy = 0; dy < size; dy += step) {
+        for (int dx = 0; dx < size; dx += step) {
+            Position pos(anchor.X() + 1 - dx, anchor.Y() + 1 - dy);
+            if (IsAvailable(pos)) return pos;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<Position> Map::FindFreeNear(const Factory& factory) const {
+    return FindFreeAround(factory.GetPosMain(), MapSettings::FactoryRingSize, MapSettings::FactoryRingStep);
+}
+
+std::optional<Position> Map::FindFreeNear(const Robot& robot) const {
+    return FindFreeAround(robot.GetPos(), MapSettings::RobotRingSize, MapSettings::RobotRingStep);
 }
     bool Map::IsFree(const Position& position) const{
         if (position.X() < 0 or position.Y() < 0 or position.X() >= _width or position.Y() >= _height){
             return false;
         }
-        if (_grid[position.Y()][position.X()].GetPassable() == false){
+        if (_grid[position.Y()][position.X()].GetCost() == CellSettings::ImpassableCost){
             return false;
         }
         return true;
@@ -116,7 +139,7 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
         return false;
     }
     std::vector<std::vector<Cell>> Map::CreateGrid(){
-        _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,false,1)));
+        _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,1)));
 
         std::vector<int> all_indexes;
         all_indexes.reserve(_width * _height);
@@ -132,13 +155,13 @@ Map::Map(int _w,int _h,int _cnt_of_impassable)
                 const int cell_index = i * _width + j + 1;
 
                 if (std::find(blocked.begin(), blocked.end(), cell_index) != blocked.end()) {
-                    _grid[i][j] = Cell(true, false, false, 1);
+                    _grid[i][j] = Cell(false, false, CellSettings::ImpassableCost);
                 }
                 else if (std::find(costly.begin(), costly.end(), cell_index) != costly.end()) {
-                    _grid[i][j] = Cell(false, false, false, 2);
+                    _grid[i][j] = Cell(false, false, CellSettings::DifficultMoveCost);
                 }
                 else {
-                    _grid[i][j] = Cell(false, false, false, 1);
+                    _grid[i][j] = Cell(false, false, CellSettings::DefaultMoveCost);
                 }
             }
         }
