@@ -3,7 +3,7 @@
 Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _is_enemy, int max_speed)
             :_hp(_max_hp), _max_hp(_max_hp), _energy(_max_energy), _max_energy(_max_energy),
             _xp(0), _xp_to_lvlup(_xp_to_lvlup), _current_lvl(0), _damage(_damage),
-            _max_speed(max_speed), _speed(max_speed), _position(0, 0), _is_enemy(_is_enemy)
+            _max_speed(max_speed), _speed(max_speed), _position(0, 0), _is_enemy(_is_enemy),_ability_point(1)
             {
             }
     void Robot ::SetHp(int value){
@@ -69,6 +69,9 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
             _speed = 0;
         }
     }
+    void Robot::AddDamage(int value){
+        _damage += value;
+    }
     void Robot::ResetSpeed(){
         _speed = _max_speed;
     }
@@ -83,6 +86,7 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
         while (_xp >= _xp_to_lvlup){
             _xp -= _xp_to_lvlup;
             _current_lvl += 1;
+            _ability_point += 1;
             IncreaseMaxHp(RobotSettings::MaxHpPerLevel);
             AddHp(RobotSettings::CurrentHpPerLevel);
         }
@@ -98,8 +102,32 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     void Robot ::SetEnemy(bool value){
         _is_enemy = value;
     }
+    Abilities* Robot::FindAbility(Abilities::AbilityType type){
+        auto it = std::find_if(_abilities.begin(), _abilities.end(),
+                            [type](const std::unique_ptr<Abilities>& ability) { return type == ability->GetAbilityType(); });
+        if (it == _abilities.end()) return nullptr;
+        else { return it->get();}
+    }
+    const Abilities* Robot::FindAbility(Abilities::AbilityType type) const{
+        auto it = std::find_if(_abilities.begin(), _abilities.end(),
+                            [type](const std::unique_ptr<Abilities>& ability) { return type == ability->GetAbilityType(); });
+        if (it == _abilities.end()) return nullptr;
+        else { return it->get();}
+    }
+    void Robot::AddAbility(std::unique_ptr<Abilities> ability)
+    {
+        _abilities.push_back(std::move(ability));
+    }
+    void Robot::AddAbilityPoint(int value){ 
+        _ability_point += value;
+    }
+    
+
+            
+    const int Robot::HasAbilityPoint() const {return _ability_point;}
     const int Robot ::GetDamage() const { return _damage;}
     const int Robot ::GetHp() const { return _hp;}
+    const int Robot ::GetMaxHp() const { return _max_hp;}
     const bool Robot ::GetType() const { return _is_enemy;}
     const int Robot ::GetEnergy() const { return _energy;}
     const int Robot ::GetLvl() const { return _current_lvl;}
@@ -107,3 +135,5 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     const int Robot ::GetSpeed() const { return _speed;}
     const int Robot ::GetXpToLvlUp() const { return _xp_to_lvlup;}
     const Position Robot::GetPos() const { return _position; }
+    const std::vector<std::unique_ptr<Abilities>>& Robot::GetAbilities() const { return _abilities; }
+    

@@ -43,19 +43,18 @@ Map::Map(int _w,int _h,int _count_of_blocked)
         return nums;
     }
     Cell& Map::GetCell(const Position& position) { return _grid[position.Y()][position.X()]; }
+    Cell& Map::GetCell(Position& position) { return _grid[position.Y()][position.X()]; }
     const Cell& Map::GetCell(const Position& position) const { return _grid[position.Y()][position.X()]; }
-    // попрощу написать в тройной цикл;
+ 
 bool Map::IsAvailable(const Position& pos) const {
     if (pos.X() < 0 || pos.Y() < 0 || pos.X() >= _width || pos.Y() >= _height) return false;
     return IsFree(pos) && !IsOccupied(pos);
 }
 
 bool Map::HasFreeNeighbor(int x, int y) const {
-    for (int dy = -1; dy <= 1; ++dy) {
-        for (int dx = -1; dx <= 1; ++dx) {
-            if (dx == 0 && dy == 0) continue;
-            if (IsAvailable({x + dx, y + dy})) return true;
-        }
+    if (IsAvailable({x - 1, y}) || IsAvailable({x + 1, y}) ||
+        IsAvailable({x, y - 1}) || IsAvailable({x, y + 1})) {
+        return true;
     }
     return false;
 }
@@ -133,6 +132,7 @@ std::optional<Position> Map::FindFreeNear(const Robot& robot) const {
         return true;
     }
     bool Map::IsOccupied(const Position& position) const{
+        if (!IsFree(position)) return false;
         if (_grid[position.Y()][position.X()].GetOccupied() == true){
             return true;
         }
@@ -168,8 +168,23 @@ std::optional<Position> Map::FindFreeNear(const Robot& robot) const {
 
         return _grid;
     }
-    int Map::ManhattanDistance(const Position &position1,const Position &position2){
+    int Map::ManhattanDistance(const Position &position1,const Position &position2) const{
         return std::abs(position1.X() -position2.X()) + std::abs(position1.Y() -position2.Y());
+    }
+    std::vector<Position> Map::CellsInRadius(const Position& center, int radius,bool enemyNeeded) const {
+        std::vector<Position> result;
+        for (int y = center.Y() - radius; y <= center.Y() + radius; ++y) {
+            for (int x = center.X() - radius; x <= center.X() + radius; ++x) {
+                const Position pos(x, y);
+                if (enemyNeeded){
+                    if (IsFree(pos) && pos != center &&ManhattanDistance(center, pos) <= radius) result.push_back(pos);
+                }
+                else{
+                    if (IsAvailable(pos) && pos != center &&ManhattanDistance(center, pos) <= radius) result.push_back(pos);
+                }
+            }
+        }
+        return result;
     }
 
     void Map::SetVisibleToCells(const Player& player){

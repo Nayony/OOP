@@ -10,3 +10,7 @@ int Position::X() const {
 int Position::Y() const {
     return y_;
 }
+
+bool Position::operator==(const Position& other) const {
+    return (this->x_ == other.x_ && this->y_ == other.y_);
+}

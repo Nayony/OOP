@@ -2,6 +2,8 @@
 #define VISUALIZATION
 
 #include "game.h"
+#include "abilities/AbilityInfo.h"
+#include <optional>
 #include <string>
 #include <SFML/Graphics.hpp>
 
@@ -10,7 +12,10 @@ class Visualizer{
     const Game& _game;
     sf::RenderWindow& _window;
     sf::Font _font;
+    AbilityInfo _abilityInfo;
     float _offset_x,_offset_y;
+    bool _cellIncludesMouse;
+    
     public:
         Visualizer(const Game& game, sf::RenderWindow& window);
         void Draw(std::string game_state,int win_x,int win_y);
@@ -20,10 +25,15 @@ class Visualizer{
         void DrawRobots(const std::vector<Robot>& robots, const std::vector<int>& cell_size,const std::vector<std::vector<Cell>>& grid);
         void DrawPlayer(const Player& player, const std::vector<int>& cell_size);
         void ShowCurSpecifications(const Player& player);
+        sf::Color LerpColor(sf::Color from, sf::Color to, float t);
         void DrawSpecificationsOnRobot(const sf::RectangleShape& rectangle, const Robot& robot);
+        void DrawAbilityButton(const Game& game,sf::Vector2f mouse);
+        void DrawGuideAbilityPanel(std::string description,std::string topic,std::string lvl);
+        std::optional<Position> CellAt(sf::Vector2i mouse);
+        std::vector<int> CellSize() const;
+        void DrawAbilityCells(const std::vector<Position>& cells);
 };
     
 
 #endif
-
 

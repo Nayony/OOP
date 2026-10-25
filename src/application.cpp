@@ -1,5 +1,6 @@
 #include "application.h"
 #include <optional>
+#include <iostream>
 
 Application::Application(int enemy_robot_count)
 	: _enemy_robot_count(enemy_robot_count),
@@ -22,23 +23,66 @@ void Application::run()
 				_window.close();
 				continue;
 			}
-
 			if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
 				if (key->code == sf::Keyboard::Key::Escape) {
-					_window.close();
+					if (!_game.GetCellsInRange().empty()){
+						_game.SetCellsInRange({});
+						_game.SetAbility(Abilities::AbilityType::sNone);
+					}
+					else{ _window.close();}
 				} else if (key->code == sf::Keyboard::Key::Space) {
 					_game.Pass();
                 } else if (key->code == sf::Keyboard::Key::R) {
 					Restart();
-				} else if (_game.GetGameState() == "Playing") {
+                }
+				else if (key->control) {
+					if (key->code == sf::Keyboard::Key::Num1) {
+						_game.GiveAbilityToPlayer(Abilities::AbilityType::sAroundHit);
+					}
+					else if (key->code == sf::Keyboard::Key::Num2) {
+						_game.GiveAbilityToPlayer(Abilities::AbilityType::sFarHit);
+					}
+					else if (key->code == sf::Keyboard::Key::Num3) {
+						_game.GiveAbilityToPlayer(Abilities::AbilityType::sHeal);
+					}
+					else if (key->code == sf::Keyboard::Key::Num4) {
+						_game.GiveAbilityToPlayer(Abilities::AbilityType::sTeleport);
+					}
+				}
+				else if (key->code == sf::Keyboard::Key::Num1) {
+					_game.PlayerUseAbility(Abilities::AbilityType::sAroundHit);
+				}
+				else if (key->code == sf::Keyboard::Key::Num2) {
+					_game.PlayerUseAbility(Abilities::AbilityType::sFarHit);
+				}
+				else if (key->code == sf::Keyboard::Key::Num3) {
+					_game.PlayerUseAbility(Abilities::AbilityType::sHeal);
+				}
+				else if (key->code == sf::Keyboard::Key::Num4) {
+					_game.PlayerUseAbility(Abilities::AbilityType::sTeleport);
+				}
+				else if (_game.GetGameState() == "Playing") {
 					_game.Move(_controls.TranslateCmd(*key));
 				}
+			}
+			else if (const auto* mouseButton = event->getIf<sf::Event::MouseButtonPressed>()) {
+			if (mouseButton->button == sf::Mouse::Button::Left){
+				auto type = _game.GetSelectedAbility();
+				if (type != Abilities::AbilityType::sNone){
+					sf::Vector2i clickPos = mouseButton->position;
+					if (const auto cell = _visualizer.CellAt(clickPos)) {
+						if (auto* ability = _game.GetPlayer().FindAbility(type)) {
+							ability->EndAbility(*cell, _game);
+						}
+					}
+				}
+			}
 			}
 		}
 
 		_window.clear({VisualSettings::BackgroundColor.red, VisualSettings::BackgroundColor.green,
 			       VisualSettings::BackgroundColor.blue, VisualSettings::BackgroundColor.alpha});
-		_visualizer.Draw(_game.GetGameState(),_win_x,_win_y);
+		_visualizer.Draw(_game.GetGameState(), _win_x, _win_y);
 		_window.display();
 	}
 }

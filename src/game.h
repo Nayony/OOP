@@ -5,10 +5,15 @@
 #include "map.h"
 #include "player.h"
 #include "factory.h"
-#include <vector>
 #include "controls.h"
+#include "abilities/AroundHit.h"
+#include "abilities/FarHit.h"
+#include "abilities/Heal.h"
+#include "abilities/Teleport.h"
 #include <algorithm>
+#include <vector>
 #include <random>
+#include "constants.h"
 
 
 class Game{
@@ -22,16 +27,25 @@ class Game{
         bool _player_turn;
         bool _win;
         bool _lose;
+        Abilities::AbilityType _selectedSpell;
         bool MoveRobot(Robot& robot, Controls::keys cmd);
+        std::vector<Position> _cells_in_range;
+        
+        
     public:
         Game(int _enemy_robot_count);
         void SetRobotPos();
         const Map& GetMap() const;
+        Map& GetMap();
+        Player& GetPlayer();
         const Player& GetPlayer() const;
         const std::vector<Robot>& GetRobots() const;
         void Move(Controls::keys cmd);
+        void MoveRobotToCell(Robot& robot, const Position& position);
         bool interaction(Robot &main, Robot &other);
         Robot& WhoOccupies(const Position& position);
+        void RobotUseAbility(Abilities::AbilityType  type,Robot &robot);
+        void PlayerUseAbility(Abilities::AbilityType type);
         void DecreaseEnemyCount();
         void Kill(Robot& robot);
         void ResetTurnResources();
@@ -41,6 +55,11 @@ class Game{
         std::string GetGameState() const;
         void FactoryTrySpawn(int turn);
         void EndTurn();
+        void GiveAbilityToPlayer(Abilities::AbilityType type);
+        void SetAbility(Abilities::AbilityType type);
+        const Abilities::AbilityType GetSelectedAbility() const;
+        const std::vector<Position> GetCellsInRange() const;
+        void SetCellsInRange(std::vector<Position> cells);
 };
     
 

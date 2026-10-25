@@ -25,6 +25,7 @@ class Map{
         const std::vector<std::vector<Cell>>& GetGrid() const;
         Cell& GetCell(const Position& position);
         const Cell& GetCell(const Position& position) const;
+        Cell& GetCell(Position& position);
         void FindFreeCell(Robot& robot);
         bool IsAvailable(const Position& pos) const;
         bool IsAreaAvailable(const Position& main) const;
@@ -36,6 +37,9 @@ class Map{
         bool IsFree(const Position& position) const;
         bool IsOccupied(const Position& position) const;
         void SetVisibleToCells(const Player& player);
-        int ManhattanDistance(const Position &position1,const Position &position2);
+        int ManhattanDistance(const Position &position1,const Position &position2) const;
+        std::vector<Position> CalculateAroundArea(Position pos);
+        std::vector<Position> CellsInRadius(const Position& center, int radius,bool enemyNeeded) const;
+        
 };
 #endif

@@ -1,5 +1,6 @@
 #include "visualization.h"
 #include "constants.h"
+#include <iostream>
 
 namespace {
 sf::Color ToSfColor(VisualSettings::Rgba color){
@@ -10,20 +11,20 @@ sf::Color ToSfColor(VisualSettings::Rgba color){
 
 Visualizer::Visualizer(const Game& game,sf::RenderWindow& window)
     : _game(game), _window(window), _offset_x(VisualSettings::MapOffsetX),
-      _offset_y(VisualSettings::MapOffsetY)
+      _offset_y(VisualSettings::MapOffsetY),_cellIncludesMouse(false)
 {
     _window.setFramerateLimit(ApplicationSettings::FrameRateLimit);
     if (!_font.openFromFile("D:\\vscode\\public\\OOP\\OOP\\assets\\font.ttf")) {
         throw std::runtime_error("Font not found");
     }
 }
+
 void Visualizer::Draw(std::string game_state,int win_x, int win_y){
     const auto& map_size = _game.GetMap().GetSize();
-    const auto& cell_size = CalculateCellSize(
-        {int(win_x - VisualSettings::WindowPaddingMultiplier * _offset_x),
-         int(win_y - VisualSettings::WindowPaddingMultiplier * _offset_y)}, map_size[0], map_size[1]);
+    const auto cell_size = CellSize();
     const auto& grid = _game.GetMap().GetGrid();
-
+    sf::Vector2f mouse = _window.mapPixelToCoords(sf::Mouse::getPosition(_window));
+    
     
     if (game_state == "Win" || game_state == "Lose") {
     const bool win = (game_state == "Win");
@@ -39,6 +40,10 @@ void Visualizer::Draw(std::string game_state,int win_x, int win_y){
         Visualizer::DrawRobots(_game.GetRobots(), cell_size,grid);
         Visualizer::DrawPlayer(_game.GetPlayer(), cell_size);
         Visualizer::ShowCurSpecifications(_game.GetPlayer());
+        Visualizer::DrawAbilityButton(_game,mouse);
+        if(!_game.GetCellsInRange().empty() && _game.GetSelectedAbility() != Abilities::AbilityType::sNone){
+			DrawAbilityCells(_game.GetCellsInRange());
+		}
     }
     
 
@@ -47,6 +52,14 @@ const std::vector<int> Visualizer::CalculateCellSize(std::vector<int> window_siz
     int cell_width = (window_size[0]) / width;
     int cell_height = (window_size[1]) / height;
     return std::vector<int>{cell_width, cell_height};
+}
+std::vector<int> Visualizer::CellSize() const{
+    const auto& map_size = _game.GetMap().GetSize();
+    const sf::Vector2u window_size = _window.getSize();
+    return CalculateCellSize(
+        {int(window_size.x - VisualSettings::MapMarginLeft - VisualSettings::MapMarginRight),
+         int(window_size.y - VisualSettings::MapMarginTop - VisualSettings::MapMarginBot)},
+        map_size[0], map_size[1]);
 }
 void Visualizer::ShowCurSpecifications(const Player& player) {
     const std::string labels[] = {
@@ -114,10 +127,157 @@ void Visualizer::DrawCross(float pos_x, float pos_y,int width, int height, int a
 
     _window.draw(lines);
 }
+sf::Color Visualizer::LerpColor(sf::Color from, sf::Color to, float t)
+{
+    return sf::Color(
+        static_cast<unsigned char>(std::lerp(from.r, to.r, t)),
+        static_cast<unsigned char>(std::lerp(from.g, to.g, t)),
+        static_cast<unsigned char>(std::lerp(from.b, to.b, t)),
+        static_cast<unsigned char>(std::lerp(from.a, to.a, t))
+    );
+}
+void Visualizer::DrawGuideAbilityPanel(std::string description,std::string topic,std::string lvl){
+    sf::RectangleShape guidePanel({VisualSettings::GuideAbilityPanelWidth,
+                                   VisualSettings::GuideAbilityPanelHeight});
+
+    const float win_w = static_cast<float>(_window.getSize().x);
+    const float win_h = static_cast<float>(_window.getSize().y);
+
+    const float x = (win_w - guidePanel.getSize().x) / 2.f;
+    const float y = win_h - VisualSettings::MapMarginBot - guidePanel.getSize().y;
+
+    guidePanel.setPosition({x, y});
+    guidePanel.setFillColor({25,25,33});
+    _window.draw(guidePanel);
+
+    sf::Text top(_font);
+    top.setString(topic + " " + "LVL:" + " " + lvl + "/" + std::to_string(AbilitiesSettings::MaxLvl));
+    top.setCharacterSize(VisualSettings::SpecificationTextSize);            
+    top.setFillColor(sf::Color::White);
+    top.setOrigin({top.getLocalBounds().position.x + top.getLocalBounds().size.x / 2.f, top.getLocalBounds().position.y});
+    top.setPosition({guidePanel.getPosition().x + guidePanel.getSize().x / 2.f, guidePanel.getPosition().y + VisualSettings::GuideAbilityTopicOffsetY});
+
+    sf::Text desc(_font);
+    desc.setString(description);
+    desc.setCharacterSize(VisualSettings::AbilityDescriptionSize);            
+    desc.setFillColor(sf::Color::White);
+    desc.setPosition({VisualSettings::GuideAbilityDescOffsetX + guidePanel.getPosition().x, guidePanel.getPosition().y + guidePanel.getSize().y/5.f});
+    
+    _window.draw(top);
+    _window.draw(desc);
+
+}
+void Visualizer::DrawAbilityButton(const Game& game,sf::Vector2f mouse){
+    const auto& _abilities = game.GetPlayer().GetAbilities();
+    auto& player = game.GetPlayer();
+    const bool hasPoint = player.HasAbilityPoint() >= 1;
+
+    for (int abilityId = 1; abilityId <= VisualSettings::AbilitySlotCount; abilityId++){
+        int ownedIndex = -1;                                          
+        for (int k = 0; k < static_cast<int>(_abilities.size()); k++){
+            if (_abilities[k]->GetAbilityId() == abilityId) ownedIndex = k;
+        }
+        const bool owned = ownedIndex != -1;
+
+        if (!owned && !hasPoint) continue;                           
+
+        sf::RectangleShape button({VisualSettings::ButtonSize,VisualSettings::ButtonSize});
+        button.setPosition({VisualSettings::AbilityPanelOffsetX + VisualSettings::ButtonOffset*(abilityId-1),VisualSettings::AbilityPanelOffsetY});
+        button.setFillColor(sf::Color::White);
+        sf::Color outlineColor = sf::Color::Transparent;
+
+        if (hasPoint){
+        if (owned){
+            outlineColor = sf::Color::Green;
+        
+        if(_abilities[ownedIndex]->GetAbilityLvl() == AbilitiesSettings::MaxLvl){
+            outlineColor = sf::Color::Transparent;
+        }
+        }
+        else{outlineColor = sf::Color::Yellow;}
+        }
+        //if (hasPoint) outlineColor = owned ? sf::Color::Green : sf::Color::Yellow;
+        button.setOutlineColor(outlineColor);
+        button.setOutlineThickness(VisualSettings::OutlineThickness); 
+
+        
+        sf::Text label(_font);
+        label.setString(std::to_string(abilityId));
+        label.setCharacterSize(VisualSettings::SpecificationTextSize);            
+        label.setFillColor(sf::Color::Black);
+
+        label.setOrigin({label.getLocalBounds().position.x+ label.getLocalBounds().size.x/2,label.getLocalBounds().position.y + label.getLocalBounds().size.y/2});
+        label.setPosition({button.getPosition().x + button.getSize().x/2,button.getPosition().y + button.getSize().y/2});
+
+
+        _window.draw(button);
+        _window.draw(label);
+
+        bool hovered = button.getGlobalBounds().contains(mouse);
+        if (hovered){
+            const int level = owned ? _abilities[ownedIndex]->GetAbilityLvl() : 0;
+            DrawGuideAbilityPanel(_abilityInfo.GetDescription(abilityId), _abilityInfo.GetName(abilityId),
+            std::to_string(level));
+        }
+        
+    }
+}
+std::optional<Position> Visualizer::CellAt(sf::Vector2i mouse){
+    const auto& map_size = _game.GetMap().GetSize();
+    const auto cell_size = CellSize();
+    sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
+    for (int i = 0; i < map_size[1]; i++) {
+        for (int j = 0; j < map_size[0]; j++) {
+            float x = j * cell_size[0] + _offset_x;
+            float y = i * cell_size[1] + _offset_y;
+            rectangle.setPosition({x, y});
+            if (rectangle.getGlobalBounds().contains({float(mouse.x),float(mouse.y)})){
+                return Position{j, i};
+            }
+        }
+    }
+    return std::nullopt;
+}
+void Visualizer::DrawAbilityCells(const std::vector<Position>& cells){
+    const auto cell_size = CellSize();
+    const sf::Color color = ToSfColor(VisualSettings::AbilityCellOutlineColor);
+    const float outerR = std::min(cell_size[0], cell_size[1]) / 4.f;
+    const float innerR = outerR / 2.f;
+
+    sf::RectangleShape rectangle({float(cell_size[0]), float(cell_size[1])});
+    rectangle.setFillColor(sf::Color::Transparent);
+    rectangle.setOutlineThickness(VisualSettings::CellOutlineThickness);
+    rectangle.setOutlineColor(color);
+
+    sf::CircleShape outer(outerR);
+    outer.setOrigin({outerR, outerR});
+    outer.setFillColor(sf::Color::Transparent);
+    outer.setOutlineThickness(VisualSettings::CellOutlineThickness);
+    outer.setOutlineColor(color);
+
+    sf::CircleShape inner(innerR);
+    inner.setOrigin({innerR, innerR});
+    inner.setFillColor(color);
+
+    for (const auto& cell : cells){
+        const sf::Vector2f topLeft{float(cell.X() * cell_size[0] + _offset_x),
+                                   float(cell.Y() * cell_size[1] + _offset_y)};
+        const sf::Vector2f center = topLeft + rectangle.getSize() / 2.f;
+
+        rectangle.setPosition(topLeft);
+        outer.setPosition(center);
+        inner.setPosition(center);
+
+        _window.draw(rectangle);
+        _window.draw(outer);
+        _window.draw(inner);
+    }
+}
 void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<int>& cell_size,
                            const std::vector<std::vector<Cell>>& grid) {
     sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
     rectangle.setOutlineThickness(VisualSettings::CellOutlineThickness);
+    
 
     for (int i = 0; i < map_size[1]; i++) {
         for (int j = 0; j < map_size[0]; j++) {
@@ -150,6 +310,7 @@ void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<i
             rectangle.setFillColor(fill);
             auto outline_color = VisualSettings::CellOutlineColor;
             outline_color.alpha = visible ? VisualSettings::VisibleAlpha : VisualSettings::HiddenOutlineAlpha;
+            outline_color.alpha = _game.GetCellsInRange().empty() ? outline_color.alpha : outline_color.alpha/3;
             rectangle.setOutlineColor(ToSfColor(outline_color));
             _window.draw(rectangle);
         }
