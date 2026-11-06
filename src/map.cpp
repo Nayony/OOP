@@ -42,9 +42,41 @@ Map::Map(int _w,int _h,int _count_of_blocked)
         }
         return nums;
     }
+    std::vector<int> Map::RandomCellsWithStatus(std::vector<int>& indexes){
+        std::vector<int> nums;
+        int max_statuses_count = MapSettings::MaxStatusesOnCell;
+        int value;
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        while (max_statuses_count > 0){
+        std::vector<int> idx_copy = indexes;
+        for (int i =0;i<_count_of_blocked;i++){
+            std::uniform_int_distribution<> distr(0,(int)idx_copy.size()-1);
+            value = idx_copy[distr(gen)];
+            auto pi = std::find(idx_copy.begin(), idx_copy.end(), value);
+            if (pi != idx_copy.end()) { 
+                idx_copy.erase(pi);
+            }
+            nums.push_back(value);
+        }
+        max_statuses_count--;
+    }
+        for (int i = 0;i<nums.size();i++){
+            auto pi = std::find(indexes.begin(), indexes.end(), nums[i]);
+            if (pi != indexes.end()) { 
+                indexes.erase(pi);
+            }
+        }
+        return nums;
+    }
     Cell& Map::GetCell(const Position& position) { return _grid[position.Y()][position.X()]; }
     Cell& Map::GetCell(Position& position) { return _grid[position.Y()][position.X()]; }
     const Cell& Map::GetCell(const Position& position) const { return _grid[position.Y()][position.X()]; }
+
+bool Map::HasStatus(const Position& position) const {
+    if (position.X() < 0 || position.Y() < 0 || position.X() >= _width || position.Y() >= _height) return false;
+    return GetCell(position).GetStatusesCount() > 0;
+}
  
 bool Map::IsAvailable(const Position& pos) const {
     if (pos.X() < 0 || pos.Y() < 0 || pos.X() >= _width || pos.Y() >= _height) return false;
@@ -67,7 +99,8 @@ void Map::FindFreeCell(Robot& robot) {
 
     for (int y = start_y; y >= 0 && y < _height; y += step) {
         for (int x = start_x; x >= 0 && x < _width; x += step) {
-            if (!IsAvailable({x, y}) || !HasFreeNeighbor(x, y)) continue;
+            const Position position(x, y);
+            if (!IsAvailable(position) || HasStatus(position) || !HasFreeNeighbor(x, y)) continue;
 
             robot.SetPos(Position(x, y));
             _grid[y][x].SetOccupied(true);
@@ -77,9 +110,12 @@ void Map::FindFreeCell(Robot& robot) {
 }
 
 bool Map::IsAreaAvailable(const Position& main) const {
-    for (int dy = 0; dy < MapSettings::FactorySize; ++dy)
-        for (int dx = 0; dx < MapSettings::FactorySize; ++dx)
-            if (!IsAvailable({main.X() - dx, main.Y() - dy})) return false;
+    for (int dy = 0; dy < MapSettings::FactorySize; ++dy) {
+        for (int dx = 0; dx < MapSettings::FactorySize; ++dx) {
+            const Position position(main.X() - dx, main.Y() - dy);
+            if (!IsAvailable(position) || HasStatus(position)) return false;
+        }
+    }
     return true;
 }
 
@@ -91,7 +127,7 @@ void Map::MarkFactoryArea(const Position& main) {
 
 bool Map::CellsForFactory(Factory& factory) {
     const int size = MapSettings::FactorySize;
-
+    // тут подумать над тем как статус доделать
     for (int y = _height - 1; y >= size - 1; --y) {
         for (int x = _width - 1; x >= size - 1; --x) {
             const Position main(x, y);
@@ -109,7 +145,7 @@ std::optional<Position> Map::FindFreeAround(const Position& anchor, int size, in
     for (int dy = 0; dy < size; dy += step) {
         for (int dx = 0; dx < size; dx += step) {
             Position pos(anchor.X() + 1 - dx, anchor.Y() + 1 - dy);
-            if (IsAvailable(pos)) return pos;
+            if (IsAvailable(pos) && !HasStatus(pos)) return pos;
         }
     }
     return std::nullopt;
@@ -138,21 +174,34 @@ std::optional<Position> Map::FindFreeNear(const Robot& robot) const {
         }
         return false;
     }
+    void Map::AddStatusToCell(Cell &cell){
+        if (cell.GetStatuses().size() == StatusesSettings::MaxStatusesCount) return;
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        std::uniform_int_distribution<> distr(0,static_cast<int>(StatusType::sNone) - 1);
+        StatusType status = static_cast<StatusType>(distr(gen));
+        while (cell.FindStatus(status) != false){
+            status = static_cast<StatusType>(distr(gen));
+        }
+        cell.AddStatus(status);
+        
+    }
     std::vector<std::vector<Cell>> Map::CreateGrid(){
         _grid.assign(_height, std::vector<Cell>(_width, Cell(false,false,1)));
 
         std::vector<int> all_indexes;
         all_indexes.reserve(_width * _height);
-        for (int i = 1; i <= _width * _height; ++i) {
-            all_indexes.push_back(i);
+        for (int i = 0; i <= _width * _height-1; ++i) {
+            if (_grid[(i/_width)][(i%_width)].GetCost() == 1) all_indexes.push_back(i);
         }
 
         auto blocked = RandomBlockedCells(all_indexes);
         auto costly = RandomBlockedCells(all_indexes);
+        auto gotStatus = RandomCellsWithStatus(all_indexes);
 
         for (int i = 0; i < _height; ++i) {
             for (int j = 0; j < _width; ++j) {
-                const int cell_index = i * _width + j + 1;
+                const int cell_index = i * _width + j;
 
                 if (std::find(blocked.begin(), blocked.end(), cell_index) != blocked.end()) {
                     _grid[i][j] = Cell(false, false, CellSettings::ImpassableCost);
@@ -162,6 +211,12 @@ std::optional<Position> Map::FindFreeNear(const Robot& robot) const {
                 }
                 else {
                     _grid[i][j] = Cell(false, false, CellSettings::DefaultMoveCost);
+                }
+                auto pi = std::find(gotStatus.begin(), gotStatus.end(), cell_index);
+                while(pi != gotStatus.end()){
+                        AddStatusToCell(_grid[i][j]);
+                        gotStatus.erase(pi);
+                        pi = std::find(gotStatus.begin(), gotStatus.end(), cell_index);
                 }
             }
         }

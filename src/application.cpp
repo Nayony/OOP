@@ -26,8 +26,7 @@ void Application::run()
 			if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
 				if (key->code == sf::Keyboard::Key::Escape) {
 					if (!_game.GetCellsInRange().empty()){
-						_game.SetCellsInRange({});
-						_game.SetAbility(Abilities::AbilityType::sNone);
+						_game.ClearSelection();
 					}
 					else{ _window.close();}
 				} else if (key->code == sf::Keyboard::Key::Space) {
@@ -35,31 +34,34 @@ void Application::run()
                 } else if (key->code == sf::Keyboard::Key::R) {
 					Restart();
                 }
+                else if (key->code == sf::Keyboard::Key::C) {
+					_visualizer.ChangeVisualizationMode();
+                }
 				else if (key->control) {
 					if (key->code == sf::Keyboard::Key::Num1) {
-						_game.GiveAbilityToPlayer(Abilities::AbilityType::sAroundHit);
+						_game.GiveAbilityToPlayer(AbilityType::sAroundHit);
 					}
 					else if (key->code == sf::Keyboard::Key::Num2) {
-						_game.GiveAbilityToPlayer(Abilities::AbilityType::sFarHit);
+						_game.GiveAbilityToPlayer(AbilityType::sFarHit);
 					}
 					else if (key->code == sf::Keyboard::Key::Num3) {
-						_game.GiveAbilityToPlayer(Abilities::AbilityType::sHeal);
+						_game.GiveAbilityToPlayer(AbilityType::sHeal);
 					}
 					else if (key->code == sf::Keyboard::Key::Num4) {
-						_game.GiveAbilityToPlayer(Abilities::AbilityType::sTeleport);
+						_game.GiveAbilityToPlayer(AbilityType::sTeleport);
 					}
 				}
 				else if (key->code == sf::Keyboard::Key::Num1) {
-					_game.PlayerUseAbility(Abilities::AbilityType::sAroundHit);
+					_game.PlayerUseAbility(AbilityType::sAroundHit);
 				}
 				else if (key->code == sf::Keyboard::Key::Num2) {
-					_game.PlayerUseAbility(Abilities::AbilityType::sFarHit);
+					_game.PlayerUseAbility(AbilityType::sFarHit);
 				}
 				else if (key->code == sf::Keyboard::Key::Num3) {
-					_game.PlayerUseAbility(Abilities::AbilityType::sHeal);
+					_game.PlayerUseAbility(AbilityType::sHeal);
 				}
 				else if (key->code == sf::Keyboard::Key::Num4) {
-					_game.PlayerUseAbility(Abilities::AbilityType::sTeleport);
+					_game.PlayerUseAbility(AbilityType::sTeleport);
 				}
 				else if (_game.GetGameState() == "Playing") {
 					_game.Move(_controls.TranslateCmd(*key));
@@ -68,7 +70,7 @@ void Application::run()
 			else if (const auto* mouseButton = event->getIf<sf::Event::MouseButtonPressed>()) {
 			if (mouseButton->button == sf::Mouse::Button::Left){
 				auto type = _game.GetSelectedAbility();
-				if (type != Abilities::AbilityType::sNone){
+				if (type != AbilityType::sNone){
 					sf::Vector2i clickPos = mouseButton->position;
 					if (const auto cell = _visualizer.CellAt(clickPos)) {
 						if (auto* ability = _game.GetPlayer().FindAbility(type)) {

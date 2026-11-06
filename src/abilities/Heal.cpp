@@ -10,11 +10,14 @@ Heal::Heal()
 
 void Heal::UseAbility(Robot& main, Game& game)
 {
-    game.SetAbility(_abilityType);
+    game.ClearSelection();
     int cur_heal = std::min(main.GetMaxHp() - main.GetHp(),_power);
     main.AddHp(cur_heal);
-    //тут AddShield(_power - cur_heal)
-    game.GetPlayer().AddEnergy(-_energy_cost);
+
+    if (_lvl == AbilitiesSettings::MaxLvl) {
+        game.ApplyStatus(StatusType::sShield,main);
+    }
+    main.AddEnergy(-_energy_cost);
     
 }
 
@@ -22,12 +25,12 @@ void Heal::EndAbility(const Position pos,Game& game){
     return;
 }
 
-Abilities::AbilityType Heal::GetAbilityType() const { return _abilityType;}
+AbilityType Heal::GetAbilityType() const { return _abilityType;}
 int Heal::GetAbilityId() const { return _Id;}
 int Heal::GetAbilityLvl() const { return _lvl;}
 int Heal::GetAbilityCost() const { return _energy_cost;}
-void Heal::LvlUp(int value) {
-    if (value <= 0 || _lvl >= AbilitiesSettings::MaxLvl) return;
+bool Heal::LvlUp(int value) {
+    if (value <= 0 || _lvl >= AbilitiesSettings::MaxLvl) return false;
     if (value >= AbilitiesSettings::MaxLvl - _lvl) {
         _lvl = AbilitiesSettings::MaxLvl;
     } else {
@@ -36,5 +39,6 @@ void Heal::LvlUp(int value) {
     if (_lvl < AbilitiesSettings::MaxLvl && _lvl > 1){
         _power += AbilitiesSettings::HealPowerDelta;
     }
+    return true;
 }
 int Heal::GetRadius() const {return _radius;}

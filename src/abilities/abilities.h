@@ -7,22 +7,22 @@ class Robot;
 class Game;
 class Position;
 
-
-class Abilities{
-    
-public:
 enum class AbilityType {
     sAroundHit,
-    sFarHit,
+    sFarHit,    
     sHeal,
     sTeleport,
     sInfoCatalog,
     sNone
 };
+
+class Abilities{
+
+public:
 virtual void UseAbility(Robot &robot, Game &game) = 0;
 virtual void EndAbility(const Position pos,Game& game) = 0;
 virtual ~Abilities() = default;
-virtual void LvlUp(int value) = 0;
+virtual bool LvlUp(int value) = 0;
 virtual AbilityType GetAbilityType() const = 0;
 virtual int GetAbilityId() const = 0;
 virtual int GetAbilityLvl() const = 0;

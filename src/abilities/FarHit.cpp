@@ -10,6 +10,7 @@ FarHit::FarHit()
 
 void FarHit::UseAbility(Robot& main, Game& game)
 {
+    
     game.SetAbility(_abilityType);
     game.SetCellsInRange(game.GetMap().CellsInRadius(main.GetPos(),_radius,true));
     
@@ -24,21 +25,22 @@ void FarHit::EndAbility(const Position pos,Game& game){
     }
     if(game.GetMap().IsOccupied(pos) && found){
         auto& target = game.WhoOccupies(pos);
-        game.GetPlayer().AddDamage(_bonusDamage);
-        game.interaction(game.GetPlayer(),target);
-        game.GetPlayer().AddDamage(-_bonusDamage);
+        auto &player = game.GetPlayer();
+        if (game.DealDamage(target,player.GetDamage() + _bonusDamage)){
+            if (_lvl == AbilitiesSettings::MaxLvl) game.ApplyStatus(StatusType::sBurn,target);
+        }
         game.SetCellsInRange({});
-		game.SetAbility(Abilities::AbilityType::sNone);
-        game.GetPlayer().AddEnergy(-_energy_cost);
+		game.SetAbility(AbilityType::sNone);
+        player.AddEnergy(-_energy_cost);
     }
 }
 
-Abilities::AbilityType FarHit::GetAbilityType() const { return _abilityType;}
+AbilityType FarHit::GetAbilityType() const { return _abilityType;}
 int FarHit::GetAbilityId() const { return _Id;}
 int FarHit::GetAbilityLvl() const { return _lvl;}
 int FarHit::GetAbilityCost() const { return _energy_cost;}
-void FarHit::LvlUp(int value) {
-    if (value <= 0 || _lvl >= AbilitiesSettings::MaxLvl) return;
+bool FarHit::LvlUp(int value) {
+    if (value <= 0 || _lvl >= AbilitiesSettings::MaxLvl) return false;
     if (value >= AbilitiesSettings::MaxLvl - _lvl) {
         _lvl = AbilitiesSettings::MaxLvl;
     } else {
@@ -47,5 +49,6 @@ void FarHit::LvlUp(int value) {
     if (_lvl < AbilitiesSettings::MaxLvl && _lvl > 1){
         _bonusDamage += AbilitiesSettings::FarHitDamageDelta;
     }
+    return true;
 }
 int FarHit::GetRadius() const {return _radius;}

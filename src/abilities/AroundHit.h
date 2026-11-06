@@ -11,13 +11,13 @@ public:
     AroundHit();
     void UseAbility(Robot& main, Game& game) override;
     void EndAbility(const Position pos,Game& game) override;
-    void FindTargets(Position pos, Game& game, std::vector<Robot*>& targets);
+    std::vector<Position> FindTargets(Position pos, Game& game);
     
     AbilityType GetAbilityType() const override;
     int GetAbilityId() const override;
     int GetAbilityLvl() const override;
     int GetAbilityCost() const override;
-    void LvlUp(int value) override;
+    bool LvlUp(int value) override;
     
 private:
 

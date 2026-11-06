@@ -29,6 +29,7 @@ class Map{
         void FindFreeCell(Robot& robot);
         bool IsAvailable(const Position& pos) const;
         bool IsAreaAvailable(const Position& main) const;
+        bool HasStatus(const Position& position) const;
         std::optional<Position> FindFreeAround(const Position& anchor, int size, int step) const;
         std::optional<Position> FindFreeNear(const Factory& factory) const;
         std::optional<Position> FindFreeNear(const Robot& robot) const;
@@ -38,8 +39,9 @@ class Map{
         bool IsOccupied(const Position& position) const;
         void SetVisibleToCells(const Player& player);
         int ManhattanDistance(const Position &position1,const Position &position2) const;
-        std::vector<Position> CalculateAroundArea(Position pos);
         std::vector<Position> CellsInRadius(const Position& center, int radius,bool enemyNeeded) const;
+        std::vector<int> RandomCellsWithStatus(std::vector<int>& indexses);
+        void AddStatusToCell(Cell &cell);
         
 };
 #endif

@@ -16,7 +16,7 @@ public:
     int GetAbilityId() const override;
     int GetAbilityLvl() const override;
     int GetAbilityCost() const override;
-    void LvlUp(int value) override;
+    bool LvlUp(int value) override;
     int GetRadius() const;
 private:
     AbilityType _abilityType;

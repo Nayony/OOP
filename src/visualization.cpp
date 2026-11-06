@@ -10,13 +10,19 @@ sf::Color ToSfColor(VisualSettings::Rgba color){
 
 
 Visualizer::Visualizer(const Game& game,sf::RenderWindow& window)
-    : _game(game), _window(window), _offset_x(VisualSettings::MapOffsetX),
-      _offset_y(VisualSettings::MapOffsetY),_cellIncludesMouse(false)
+    : _game(game), _window(window), _cellIncludesMouse(false), modes({"standart","enemy","blocked","statuses"}),_cur_mode(0)
 {
     _window.setFramerateLimit(ApplicationSettings::FrameRateLimit);
-    if (!_font.openFromFile("D:\\vscode\\public\\OOP\\OOP\\assets\\font.ttf")) {
+    if (!_fontBold.openFromFile("D:\\vscode\\public\\OOP\\OOP\\assets\\NotoSerif-Bold.ttf")) {
         throw std::runtime_error("Font not found");
     }
+    if (!_fontRegular.openFromFile("D:\\vscode\\public\\OOP\\OOP\\assets\\NotoSansJP-Medium.ttf")) {
+        throw std::runtime_error("Font not found");
+    }
+    if (!_status_texture.loadFromFile("D:\\vscode\\public\\OOP\\OOP\\assets\\status_icons.png")) {
+        throw std::runtime_error("Image not found");
+    }
+    
 }
 
 void Visualizer::Draw(std::string game_state,int win_x, int win_y){
@@ -28,7 +34,7 @@ void Visualizer::Draw(std::string game_state,int win_x, int win_y){
     
     if (game_state == "Win" || game_state == "Lose") {
     const bool win = (game_state == "Win");
-    sf::Text text(_font, win ? "You Win" : "You Lose", VisualSettings::EndStateTextSize);
+    sf::Text text(_fontBold, win ? "You Win" : "You Lose", VisualSettings::EndStateTextSize);
     text.setFillColor(ToSfColor(win ? VisualSettings::HighlightColor : VisualSettings::EnemyColor));
     text.setCharacterSize(VisualSettings::EndStateTextSize);
     text.setPosition({float(_window.getSize().x / VisualSettings::CenteringDivisor - text.getLocalBounds().size.x / VisualSettings::CenteringDivisor),
@@ -37,13 +43,19 @@ void Visualizer::Draw(std::string game_state,int win_x, int win_y){
     }
     else{
         Visualizer::DrawCells(map_size, cell_size,grid);
-        Visualizer::DrawRobots(_game.GetRobots(), cell_size,grid);
-        Visualizer::DrawPlayer(_game.GetPlayer(), cell_size);
-        Visualizer::ShowCurSpecifications(_game.GetPlayer());
-        Visualizer::DrawAbilityButton(_game,mouse);
-        if(!_game.GetCellsInRange().empty() && _game.GetSelectedAbility() != Abilities::AbilityType::sNone){
-			DrawAbilityCells(_game.GetCellsInRange());
+        if (modes[_cur_mode] == "standart"){
+            Visualizer::DrawRobots(_game.GetRobots(), cell_size,grid,mouse);
+        }
+        else if(modes[_cur_mode] == "enemy"){
+            Visualizer::DrawRobots(_game.GetRobots(), cell_size,grid,mouse);
+        }
+        if(!_game.GetCellsInRange().empty() && _game.GetSelectedAbility() != AbilityType::sNone){
+            DrawAbilityCells(_game.GetCellsInRange());
 		}
+        Visualizer::DrawPlayer(_game.GetPlayer(), cell_size,mouse);
+        Visualizer::ShowCurSpecifications(_game.GetPlayer());
+        Visualizer::DrawCurrentMode();
+        Visualizer::DrawAbilityButton(_game,mouse);
     }
     
 
@@ -62,53 +74,173 @@ std::vector<int> Visualizer::CellSize() const{
         map_size[0], map_size[1]);
 }
 void Visualizer::ShowCurSpecifications(const Player& player) {
-    const std::string labels[] = {
+    sf::Text text(_fontRegular);
+    std::string labels[] = {
+        "Specifications:",
+        "Speed: " + std::to_string(player.GetSpeed()),
         "Energy: " + std::to_string(player.GetEnergy()),
+        "Damage: " + std::to_string(player.GetDamage()),
+        "Hp: " + std::to_string(player.GetHp()),
         "Xp: " + std::to_string(player.GetXp()) + " / " + std::to_string(player.GetXpToLvlUp()),
-        "Lvl: " + std::to_string(player.GetLvl()),
-        "Speed: " + std::to_string(player.GetSpeed())
+        "Lvl: " + std::to_string(player.GetLvl())
     };
-
-    const float slot = _window.getSize().x / VisualSettings::SpecificationSlotDivisor;
-    for (int i = 0; i < VisualSettings::SpecificationCount; ++i) {
-        sf::Text text(_font, labels[i], VisualSettings::SpecificationTextSize);
-        text.setFillColor(ToSfColor(VisualSettings::HighlightColor));
-        text.setPosition({slot * i + VisualSettings::SpecificationTextOffset, 0.f});
+    sf::Text topic(_fontBold);
+    sf::Text regular(_fontRegular);
+    float y = VisualSettings::SpecificationTextOffsetY;
+    for (int i = 0; i <= VisualSettings::SpecificationCount; ++i) {
+        const bool isTopic = (i == 0);
+        sf::Text text(isTopic ? _fontBold : _fontRegular);
+        
+        text.setString(labels[i]);
+        text.setCharacterSize(VisualSettings::SpecificationTextSize);
+        text.setFillColor(sf::Color::White);
+        text.setPosition({VisualSettings::SpecificationTextOffsetX, y});
+        
         _window.draw(text);
+        
+        y += isTopic
+        ? VisualSettings::SpecificationTextOffsetTopic
+        : VisualSettings::SpecificationTextOffsetBetween;
+    }
+    std::string str = "";
+    y += VisualSettings::SpecificationTextOffsetTopic;
+
+    if (!player.GetStatuses().empty()){
+        text.setCharacterSize(VisualSettings::SpecificationTextSize);
+        text.setString("Statuses: ");
+        text.setFont(_fontBold);
+        text.setPosition({VisualSettings::SpecificationTextOffsetX, y});
+        _window.draw(text);
+        y += VisualSettings::SpecificationTextOffsetTopic;
+
+    for (const auto& status:player.GetStatuses()){
+        switch (status.get()->GetStatusType())
+        {
+            case StatusType::sBurn:
+            str = "Burn:" + std::to_string(status.get()->GetStatusEndurance());
+            break;
+            case StatusType::sSlowth:
+            str = "Slowth:" + std::to_string(status.get()->GetStatusEndurance());
+            break;
+            case StatusType::sOverload:
+            str = "OverLoad:" + std::to_string(status.get()->GetStatusEndurance());
+            break;
+            case StatusType::sShield:
+            str = "Shield:" + std::to_string(player.GetShield());
+            break;
+            default:
+            break; 
+        }
+            text.setFont(_fontRegular);
+            text.setString(str);
+            text.setCharacterSize(VisualSettings::SpecificationTextSize);
+            text.setFillColor(sf::Color::White);
+            text.setPosition({VisualSettings::SpecificationTextOffsetX, y});
+            y += VisualSettings::SpecificationTextOffsetBetween;
+            _window.draw(text);
     }
 }
-
+    
+}
+void Visualizer::ChangeVisualizationMode(){
+    _cur_mode++;
+    if (_cur_mode>=modes.size()) _cur_mode = 0;
+}
 void Visualizer::DrawSpecificationsOnRobot(const sf::RectangleShape& rectangle,const Robot& robot){
-    if (!_font.getInfo().family.empty()){
-    sf::Text text = sf::Text{ _font, std::to_string(robot.GetHp())};
+    if (!_fontBold.getInfo().family.empty()){
+    sf::Text text = sf::Text{ _fontBold, std::to_string(robot.GetHp())};
     text.setCharacterSize(VisualSettings::RobotTextSize);
     text.setFillColor(ToSfColor(VisualSettings::TextColor));
     text.setPosition({rectangle.getPosition().x, rectangle.getPosition().y});
     _window.draw(text);
-    text = sf::Text{ _font, std::to_string(robot.GetDamage())};
+    text = sf::Text{ _fontBold, std::to_string(robot.GetDamage())};
     text.setCharacterSize(VisualSettings::RobotTextSize);
     text.setFillColor(ToSfColor(VisualSettings::TextColor));
     text.setPosition({rectangle.getPosition().x + rectangle.getSize().x - VisualSettings::DamageTextWidthFactor*text.getLocalBounds().size.x, rectangle.getPosition().y});
     _window.draw(text);
 }
 }
-void Visualizer::DrawPlayer(const Player& player, const std::vector<int>& cell_size){
+void Visualizer::DrawStatusInfo(const Robot &robot,Position pos,const std::vector<int>& cell_size){
+    sf::RectangleShape guidePanel({float(cell_size[0]),float(cell_size[1])});
+    std::string str;
+    sf::Text text(_fontRegular);
+    guidePanel.setPosition({float(pos.X()),float(pos.Y())});
+    if (robot.GetStatuses().size() == 0){
+        text.setString("No\nstatuses");
+        text.setPosition({float(pos.X()),float(pos.Y())});
+        text.setCharacterSize(VisualSettings::StatusInfoTextSize);
+        _window.draw(text);
+        return;
+    }
+    int i = 0;
+    for (const auto& status:robot.GetStatuses()){
+        switch (status.get()->GetStatusType())
+        {
+        case StatusType::sBurn:
+            str = "Burn:" + std::to_string(status.get()->GetStatusEndurance());
+            break;
+        case StatusType::sSlowth:
+            str = "Slowth:" + std::to_string(status.get()->GetStatusEndurance());
+            break;
+        case StatusType::sOverload:
+            str = "OverLD:" + std::to_string(status.get()->GetStatusEndurance());
+            break;
+        case StatusType::sShield:
+            str = "Shield:" + std::to_string(robot.GetShield());
+            break;
+        default:
+            break; 
+        }
+        text.setString(str);
+        text.setPosition({pos.X() + VisualSettings::StatusInfoTextOffsetX,pos.Y() + VisualSettings::StatusInfoTextOffsetY*i});
+        text.setCharacterSize(VisualSettings::StatusInfoTextSize);
+        i++;
+        _window.draw(text);
+    }
+}
+void Visualizer::DrawPlayer(const Player& player, const std::vector<int>& cell_size,sf::Vector2f mouse){
     sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
     const Position position = player.GetPos();
-    rectangle.setPosition({float(position.X() * cell_size[0]) + _offset_x, float(position.Y() * cell_size[1]) + _offset_y});
+    float x = float(position.X() * cell_size[0]) + VisualSettings::MapMarginLeft;
+    float y = float(position.Y() * cell_size[1]) + VisualSettings::MapMarginTop;
+    rectangle.setPosition({x,y});
     rectangle.setFillColor(ToSfColor(VisualSettings::PlayerColor));
     _window.draw(rectangle);
+    bool hovered = rectangle.getGlobalBounds().contains(mouse);
+    if (hovered)
+    DrawStatusInfo(player,{int(x),int(y)},cell_size);
+    else{
     DrawSpecificationsOnRobot(rectangle, player);
+    for (int i = 0;i<player.GetStatuses().size();i++){
+        DrawStatus(player.GetStatuses()[i]->GetStatusType(),cell_size,{int(x),int(y)},player.GetStatuses().size(),i+1);
+    }
+    }
 }
-void Visualizer::DrawRobots(const std::vector<Robot>& robots, const std::vector<int>& cell_size, const std::vector<std::vector<Cell>>& grid){
+void Visualizer::DrawCurrentMode(){
+    sf::Text text(_fontRegular);
+    text.setString("Current visualization mode: " + modes[_cur_mode]);
+    text.setOrigin({text.getLocalBounds().size.x / 2.f, text.getLocalBounds().position.y});
+    text.setPosition({_window.getSize().x / 2.f, VisualSettings::MapMarginTop/2});
+    _window.draw(text);
+}
+void Visualizer::DrawRobots(const std::vector<Robot>& robots, const std::vector<int>& cell_size, const std::vector<std::vector<Cell>>& grid,sf::Vector2f mouse){
     for (const auto& robot : robots){
         sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
         const Position position = robot.GetPos();
         if (grid[position.Y()][position.X()].GetVisible() == true){
-            rectangle.setPosition({float(position.X() * cell_size[0]) + _offset_x, float(position.Y() * cell_size[1]) + _offset_y});
+            float x = float(position.X() * cell_size[0]) + VisualSettings::MapMarginLeft;
+            float y = float(position.Y() * cell_size[1]) + VisualSettings::MapMarginTop;
+            rectangle.setPosition({x,y});
             rectangle.setFillColor(ToSfColor(VisualSettings::EnemyColor));
             _window.draw(rectangle);
+            bool hovered = rectangle.getGlobalBounds().contains(mouse);
+            if (hovered) DrawStatusInfo(robot,{int(x),int(y)},cell_size);
+            else{
             DrawSpecificationsOnRobot(rectangle, robot);
+            for (int i = 0;i<robot.GetStatuses().size();i++){
+                DrawStatus(robot.GetStatuses()[i]->GetStatusType(),cell_size,{int(x),int(y)},robot.GetStatuses().size(),i+1);
+            }
+        }
         }
     }
 }
@@ -127,15 +259,7 @@ void Visualizer::DrawCross(float pos_x, float pos_y,int width, int height, int a
 
     _window.draw(lines);
 }
-sf::Color Visualizer::LerpColor(sf::Color from, sf::Color to, float t)
-{
-    return sf::Color(
-        static_cast<unsigned char>(std::lerp(from.r, to.r, t)),
-        static_cast<unsigned char>(std::lerp(from.g, to.g, t)),
-        static_cast<unsigned char>(std::lerp(from.b, to.b, t)),
-        static_cast<unsigned char>(std::lerp(from.a, to.a, t))
-    );
-}
+
 void Visualizer::DrawGuideAbilityPanel(std::string description,std::string topic,std::string lvl){
     sf::RectangleShape guidePanel({VisualSettings::GuideAbilityPanelWidth,
                                    VisualSettings::GuideAbilityPanelHeight});
@@ -147,17 +271,17 @@ void Visualizer::DrawGuideAbilityPanel(std::string description,std::string topic
     const float y = win_h - VisualSettings::MapMarginBot - guidePanel.getSize().y;
 
     guidePanel.setPosition({x, y});
-    guidePanel.setFillColor({25,25,33});
+    guidePanel.setFillColor(ToSfColor(VisualSettings::GuideAbilityOutlineColor));
     _window.draw(guidePanel);
 
-    sf::Text top(_font);
+    sf::Text top(_fontBold);
     top.setString(topic + " " + "LVL:" + " " + lvl + "/" + std::to_string(AbilitiesSettings::MaxLvl));
-    top.setCharacterSize(VisualSettings::SpecificationTextSize);            
+    top.setCharacterSize(VisualSettings::StandartTextSize);            
     top.setFillColor(sf::Color::White);
     top.setOrigin({top.getLocalBounds().position.x + top.getLocalBounds().size.x / 2.f, top.getLocalBounds().position.y});
     top.setPosition({guidePanel.getPosition().x + guidePanel.getSize().x / 2.f, guidePanel.getPosition().y + VisualSettings::GuideAbilityTopicOffsetY});
 
-    sf::Text desc(_font);
+    sf::Text desc(_fontRegular);
     desc.setString(description);
     desc.setCharacterSize(VisualSettings::AbilityDescriptionSize);            
     desc.setFillColor(sf::Color::White);
@@ -201,9 +325,9 @@ void Visualizer::DrawAbilityButton(const Game& game,sf::Vector2f mouse){
         button.setOutlineThickness(VisualSettings::OutlineThickness); 
 
         
-        sf::Text label(_font);
+        sf::Text label(_fontBold);
         label.setString(std::to_string(abilityId));
-        label.setCharacterSize(VisualSettings::SpecificationTextSize);            
+        label.setCharacterSize(VisualSettings::StandartTextSize);            
         label.setFillColor(sf::Color::Black);
 
         label.setOrigin({label.getLocalBounds().position.x+ label.getLocalBounds().size.x/2,label.getLocalBounds().position.y + label.getLocalBounds().size.y/2});
@@ -228,8 +352,8 @@ std::optional<Position> Visualizer::CellAt(sf::Vector2i mouse){
     sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
     for (int i = 0; i < map_size[1]; i++) {
         for (int j = 0; j < map_size[0]; j++) {
-            float x = j * cell_size[0] + _offset_x;
-            float y = i * cell_size[1] + _offset_y;
+            float x = j * cell_size[0] + VisualSettings::MapMarginLeft;
+            float y = i * cell_size[1] + VisualSettings::MapMarginTop;
             rectangle.setPosition({x, y});
             if (rectangle.getGlobalBounds().contains({float(mouse.x),float(mouse.y)})){
                 return Position{j, i};
@@ -260,8 +384,8 @@ void Visualizer::DrawAbilityCells(const std::vector<Position>& cells){
     inner.setFillColor(color);
 
     for (const auto& cell : cells){
-        const sf::Vector2f topLeft{float(cell.X() * cell_size[0] + _offset_x),
-                                   float(cell.Y() * cell_size[1] + _offset_y)};
+        const sf::Vector2f topLeft{float(cell.X() * cell_size[0] + VisualSettings::MapMarginLeft),
+                                   float(cell.Y() * cell_size[1] + VisualSettings::MapMarginTop)};
         const sf::Vector2f center = topLeft + rectangle.getSize() / 2.f;
 
         rectangle.setPosition(topLeft);
@@ -273,17 +397,84 @@ void Visualizer::DrawAbilityCells(const std::vector<Position>& cells){
         _window.draw(inner);
     }
 }
+
+void Visualizer::DrawStatus(StatusType statusType,const std::vector<int>& cell_size,Position pos,int counter,int position){
+    sf::Sprite burning (_status_texture, sf::IntRect({0,  0}, {32, 32}));
+    sf::Sprite slow    (_status_texture, sf::IntRect({32, 0}, {32, 32}));
+    sf::Sprite overload(_status_texture, sf::IntRect({64, 0}, {32, 32}));
+    sf::Sprite shield  (_status_texture, sf::IntRect({96, 0}, {32, 32}));
+
+    sf::Sprite* status;
+    float scale = 1.5*counter;
+    if (modes[_cur_mode] == "standart" or modes[_cur_mode] == "statuses"){
+        switch (statusType)
+        {
+        case StatusType::sBurn:
+            status = &burning;
+            break;
+        case StatusType::sSlowth:
+            status = &slow;
+            break;
+        case StatusType::sShield:
+            status = &shield;
+            break;
+        case StatusType::sOverload:
+            status = &overload;
+            break;
+        default:
+            break;
+        }
+        status->setOrigin({status->getLocalBounds().size.x/2,status->getLocalBounds().size.y/2});
+        status->setScale({cell_size[0]/(32.f*scale),cell_size[1]/(32.f*scale)});
+
+        if (counter == 1){
+            status->setPosition({pos.X() + cell_size[0]/2.f,pos.Y()+cell_size[1]/2.f});
+        }
+        else if (counter == 2){
+            if (position == 1){
+                status->setPosition({pos.X() + cell_size[0]/4.f,pos.Y()+cell_size[1]/2.f});
+            }
+            else {status->setPosition({pos.X() + 3*cell_size[0]/4.f,pos.Y()+cell_size[1]/2.f});}
+        }
+        else if (counter == 3){
+            if (position == 1){
+                status->setPosition({pos.X() + cell_size[0]/4.f,pos.Y()+cell_size[1]/4.f});
+            }
+            else if (position == 2){
+                status->setPosition({pos.X() + 3*cell_size[0]/4.f,pos.Y()+cell_size[1]/4.f});
+            }
+            else if (position == 3){
+                status->setPosition({pos.X() + 3*cell_size[0]/4.f,pos.Y()+3*cell_size[1]/4.f});
+            }
+        }
+        else if (counter == 4){
+            if (position == 1){
+                status->setPosition({pos.X() + cell_size[0]/4.f,pos.Y()+cell_size[1]/4.f});
+            }
+            else if (position == 2){
+                status->setPosition({pos.X() + 3*cell_size[0]/4.f,pos.Y()+cell_size[1]/4.f});
+            }
+            else if (position == 3){
+                status->setPosition({pos.X() + 3*cell_size[0]/4.f,pos.Y()+3*cell_size[1]/4.f});
+            }
+            else if (position == 4){
+                status->setPosition({pos.X() + cell_size[0]/4.f,pos.Y()+3*cell_size[1]/4.f});
+            }
+        }
+        _window.draw(*status); 
+    }
+    
+}
 void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<int>& cell_size,
                            const std::vector<std::vector<Cell>>& grid) {
     sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
     rectangle.setOutlineThickness(VisualSettings::CellOutlineThickness);
-    
 
     for (int i = 0; i < map_size[1]; i++) {
         for (int j = 0; j < map_size[0]; j++) {
             const Cell& cell = grid[i][j];
-            float x = j * cell_size[0] + _offset_x;
-            float y = i * cell_size[1] + _offset_y;
+            int x = j * cell_size[0] + VisualSettings::MapMarginLeft;
+            int y = i * cell_size[1] + VisualSettings::MapMarginTop;
 
             bool visible = cell.GetVisible();
             bool seen = visible || cell.GetExplored();
@@ -291,22 +482,32 @@ void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<i
 
             sf::Color fill = ToSfColor(VisualSettings::TransparentColor);
             if (seen) {
-                if (cell.GetFactory() == true) {
+                if (cell.GetFactory() == true && (modes[_cur_mode] == "standart" or modes[_cur_mode] == "enemy")) {
                     auto factory_color = VisualSettings::FactoryColor;
                     factory_color.alpha = alpha;
                     fill = ToSfColor(factory_color);
                 }
                 else if (cell.GetCost() == CellSettings::ImpassableCost) {
-                    DrawCross(x, y, cell_size[0], cell_size[1], alpha);
+                    if (modes[_cur_mode] == "standart" or modes[_cur_mode] == "blocked"){
+                        DrawCross(x, y, cell_size[0], cell_size[1], alpha);
+                    }
                 }
                 else if (cell.GetCost() != CellSettings::DefaultMoveCost) {
                     auto difficult_cell_color = VisualSettings::DifficultCellColor;
                     difficult_cell_color.alpha = alpha;
-                    fill = ToSfColor(difficult_cell_color);
+                    if (modes[_cur_mode] == "standart" or modes[_cur_mode] == "blocked"){
+                        fill = ToSfColor(difficult_cell_color);
+                    }
                 }
+                if (cell.GetStatusesCount() != 0 && (modes[_cur_mode] == "standart" or modes[_cur_mode] == "statuses")){
+                    for (int i = 0;i<cell.GetStatusesCount();i++){
+                        DrawStatus(cell.GetStatuses()[i],cell_size,{x,y},cell.GetStatusesCount(),i+1);
+                    }
+                }
+                    
             }
 
-            rectangle.setPosition({x, y});
+            rectangle.setPosition({float(x), float(y)});
             rectangle.setFillColor(fill);
             auto outline_color = VisualSettings::CellOutlineColor;
             outline_color.alpha = visible ? VisualSettings::VisibleAlpha : VisualSettings::HiddenOutlineAlpha;

@@ -9,7 +9,8 @@ AroundHit::AroundHit()
 {
 }
 
-void AroundHit::FindTargets(Position pos, Game& game, std::vector<Robot*>& targets){
+std::vector<Position> AroundHit::FindTargets(Position pos, Game& game){
+    std::vector<Position> targets;
     for (int y = -_radius; y <= _radius; ++y){
         for (int x = -_radius; x <= _radius; ++x){
             if (x == 0 && y == 0){
@@ -19,31 +20,35 @@ void AroundHit::FindTargets(Position pos, Game& game, std::vector<Robot*>& targe
             Position cur_pos(pos.X() + x, pos.Y() + y);
 
             if (game.GetMap().IsOccupied(cur_pos)){
-                targets.push_back(&game.WhoOccupies(cur_pos));
+                targets.push_back(cur_pos);
             }
         }
     }
+    return targets;
 }
 
 void AroundHit::UseAbility(Robot& main, Game& game)
 {
-    game.SetAbility(_abilityType);
-    std::vector<Robot*> targets = {};
-    FindTargets(main.GetPos(),game,targets);
-    for (Robot* target : targets) {
-        game.interaction(game.GetPlayer(),*target);
+    game.ClearSelection();
+    const std::vector<Position> targets = FindTargets(main.GetPos(),game);
+    for (const Position& target_pos : targets) {
+        Robot& target = game.WhoOccupies(target_pos);
+        if (main.GetType() != target.GetType()) {
+            if (_lvl == AbilitiesSettings::MaxLvl) game.ApplyStatus(StatusType::sOverload,target);
+            game.DealDamage(target,main.GetDamage());
+        }
     }
     main.AddEnergy(-_energy_cost);
 }
 void AroundHit::EndAbility(const Position pos,Game& game){
     return;
 }
-Abilities::AbilityType AroundHit::GetAbilityType() const { return _abilityType;}
+AbilityType AroundHit::GetAbilityType() const { return _abilityType;}
 int AroundHit::GetAbilityId() const { return _Id;}
 int AroundHit::GetAbilityLvl() const { return _lvl;}
 int AroundHit::GetAbilityCost() const { return _energy_cost;}
-void AroundHit::LvlUp(int value) {
-    if (value <= 0 || _lvl >= AbilitiesSettings::MaxLvl) return;
+bool AroundHit::LvlUp(int value) {
+    if (value <= 0 || _lvl >= AbilitiesSettings::MaxLvl) return false;
     if (value >= AbilitiesSettings::MaxLvl - _lvl) {
         _lvl = AbilitiesSettings::MaxLvl;
     } else {
@@ -52,4 +57,5 @@ void AroundHit::LvlUp(int value) {
     if (_lvl < AbilitiesSettings::MaxLvl && _lvl > 1){
         _radius += AbilitiesSettings::AroundHitRadiusDelta;
     }
+    return true;
 }
