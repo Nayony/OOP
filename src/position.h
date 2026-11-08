@@ -3,14 +3,15 @@
 #define POSITION
 class Position {
 public:
-    Position(int x, int y);
-    bool operator==(const Position& other) const;
-    int X() const;
-    int Y() const;
+  Position(int x, int y);
+  bool operator==(const Position &other) const;
+  bool operator<(const Position &other) const;
+  int X() const;
+  int Y() const;
 
 private:
-    int x_;
-    int y_;
+  int x_;
+  int y_;
 };
 
 #endif
