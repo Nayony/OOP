@@ -10,6 +10,7 @@
 #include "abilities/FarHit.h"
 #include "abilities/Heal.h"
 #include "abilities/Teleport.h"
+#include "position.h"
 #include "statuses/Burn.h"
 #include "statuses/Slowth.h"
 #include "statuses/Shield.h"
@@ -55,7 +56,6 @@ class Game{
         void DecreaseEnemyCount();
         void Kill(Robot& robot);
         void ResetTurnResources();
-        Controls::keys RandomDirection();
         void MoveEnemyRobots();
         void Pass();
         std::string GetGameState() const;
@@ -71,6 +71,8 @@ class Game{
         void ApplyStatus(StatusType status,Robot& robot);
         void ActivateStatuses(Robot &robot);
         bool KillMarked();
+    Controls::keys CastToControl(const Position &player,Position &enemy);
+    bool HasEnemyNeighbor(Robot &robot);
 };
     
 
