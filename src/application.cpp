@@ -1,4 +1,4 @@
-#include "application.h"
+#include "application.h" 
 #include <optional>
 #include <iostream>
 
@@ -12,7 +12,7 @@ Application::Application(int enemy_robot_count)
 }
 
 void Application::Restart(){
-	_game = Game(_enemy_robot_count);
+    _game = Game(_enemy_robot_count);
 }
 
 void Application::run()
@@ -82,6 +82,7 @@ void Application::run()
 			}
 		}
 
+		_game.UpdateVisualEvents();
 		_window.clear({VisualSettings::BackgroundColor.red, VisualSettings::BackgroundColor.green,
 			       VisualSettings::BackgroundColor.blue, VisualSettings::BackgroundColor.alpha});
 		_visualizer.Draw(_game.GetGameState(), _win_x, _win_y);

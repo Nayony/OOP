@@ -3,7 +3,7 @@
 Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _is_enemy, int max_speed)
             :_hp(_max_hp), _max_hp(_max_hp), _energy(_max_energy), _max_energy(_max_energy),
             _xp(0), _xp_to_lvlup(_xp_to_lvlup), _current_lvl(0), _damage(_damage),
-            _max_speed(max_speed), _speed(max_speed), _position(0, 0), _is_enemy(_is_enemy),_ability_point(1),
+            _max_speed(max_speed), _speed(max_speed), _id(-1), _position(0, 0), _is_enemy(_is_enemy),_ability_point(1),
             _can_use_ability(true), _shield(0), _can_move(true), _demise(false)
             {
             }
@@ -32,6 +32,9 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     }
     void Robot::SetPos(const Position& position){
         _position = position;
+    }
+    void Robot::SetId(int id){
+        _id = id;
     }
     void Robot ::SetEnergy(int value){
         if (value>_max_energy){
@@ -170,6 +173,7 @@ Robot::Robot(int _max_hp, int _max_energy, int _xp_to_lvlup,int _damage, bool _i
     const int Robot ::GetXpToLvlUp() const { return _xp_to_lvlup;}
     const bool Robot::GetDemise() const{ return _demise;}
     const Position Robot::GetPos() const { return _position; }
+    int Robot::GetId() const { return _id; }
     const std::vector<std::unique_ptr<Abilities>>& Robot::GetAbilities() const { return _abilities; }
     const std::vector<std::unique_ptr<Statuses>>& Robot::GetStatuses() const { return _statuses; }
     const bool Robot::CanUseAbility() const{ return _can_use_ability;}

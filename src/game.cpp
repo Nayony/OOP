@@ -1,17 +1,23 @@
 #include "game.h"
-
-
+#include "constants.h"
+#include "time/timer_manager.h"
 #include <iostream>
+
+
 
 using namespace std;
 
 Game::Game(int _enemy_robot_count)
         : _enemy_robot_count(_enemy_robot_count),
+            _turn(0),
+            _timer_manager(),
             _map(MapSettings::InitialWidth, MapSettings::InitialHeight, MapSettings::InitialBlockedCellCount),
             _player(PlayerSettings::MaxHp, PlayerSettings::MaxEnergy, PlayerSettings::XpToLevel,
                             PlayerSettings::Damage, false, PlayerSettings::VisibilityRadius, PlayerSettings::MaxSpeed),
-            _player_turn(true), _lose(false), _win(false), _factory(FactorySettings::SpawnPeriod), _turn(0),_selectedSpell(AbilityType::sNone)
+            _factory(FactorySettings::SpawnPeriod),
+            _player_turn(true), _win(false), _lose(false), _selectedSpell(AbilityType::sNone)
 {
+    _player.SetId(0);
     if(_enemy_robot_count <= 0){
         _win = true;
     }
@@ -20,6 +26,17 @@ Game::Game(int _enemy_robot_count)
     _map.CellsForFactory(_factory);
     _map.SetVisibleToCells(_player);
     
+}
+
+int Game::FindFreeRobotId() const {
+    int id = 1;
+    while (true) {
+        const bool usedByPlayer = _player.GetId() == id;
+        const bool usedByEnemy = std::any_of(_enemy_arr.begin(), _enemy_arr.end(),
+            [id](const Robot& robot) { return robot.GetId() == id; });
+        if (!usedByPlayer && !usedByEnemy) return id;
+        ++id;
+    }
 }
 
 struct Delta { int dx; int dy; };
@@ -61,6 +78,7 @@ void Game::SetRobotPos(){
         Robot enemy(RobotSettings::EnemyMaxHp, RobotSettings::EnemyMaxEnergy,
                 RobotSettings::EnemyXpToLevel, RobotSettings::EnemyDamage, true,
                 RobotSettings::EnemyMaxSpeed);
+        enemy.SetId(FindFreeRobotId());
         _map.FindFreeCell(enemy);
         GiveAbilityToRobot(enemy);
         _enemy_arr.push_back(std::move(enemy));
@@ -184,6 +202,7 @@ void Game::FactoryTrySpawn(int turn){
         Robot enemy(RobotSettings::EnemyMaxHp, RobotSettings::EnemyMaxEnergy,
                 RobotSettings::EnemyXpToLevel, RobotSettings::EnemyDamage, true,
                 RobotSettings::EnemyMaxSpeed);
+        enemy.SetId(FindFreeRobotId());
         enemy.SetPos(*pos);
         _map.GetCell(*pos).SetOccupied(true);
         _enemy_robot_count += 1;
@@ -372,7 +391,12 @@ void Game::MoveRobotToCell(Robot& robot, const Position& position) {
     }
     if (robot.GetType() == false) _map.SetVisibleToCells(_player);
 }
-   
+VisualEvent Game::CreateVisualEvent(EventType type, int robotId, float timerDuration,
+        VisualSettings::Rgba startColor, VisualSettings::Rgba endColor) {
+    VisualEvent ve{type, robotId, _timer_manager.Start(timerDuration), startColor, endColor};
+    _events.push_back(ve);
+    return {ve};
+}
 bool Game::DealDamage(Robot& target,int damage,bool safe){
     if (damage < 0) target.AddHp(-damage); 
     else{
@@ -393,6 +417,15 @@ bool Game::DealDamage(Robot& target,int damage,bool safe){
             target.SetDemise(true);
         }
         return false;
+    }
+    else if(damage > 0){
+        auto Color = (target.GetType() == false) ? VisualSettings::PlayerColor : VisualSettings::EnemyColor;
+        CreateVisualEvent(
+                EventType::kDamageFlash,
+                target.GetId(),
+                TimeSettings::FlashDamageDur,
+                VisualSettings::WhiteColor,
+                Color);
     }
     return true;
 }
@@ -430,11 +463,31 @@ std::string Game::GetGameState() const {
     return "Playing";
 }
 
+void Game::UpdateVisualEvents() {
+    auto it = _events.begin();
+    while (it != _events.end()) {
+        const float progress = _timer_manager.GetProgress(it->timerId);
+        if (progress < 0.0f || progress >= 1.0f) {
+            _timer_manager.CancelTimer(it->timerId);
+            it = _events.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
 
 const Map& Game::GetMap() const { return _map; }
 Map& Game::GetMap() { return _map; }
 Player& Game::GetPlayer() { return _player; }
 const Player& Game::GetPlayer() const { return _player; }
+const TimerManager& Game::GetTimerManager() const { return _timer_manager; }
 const std::vector<Robot>& Game::GetRobots() const { return _enemy_arr; }
 const AbilityType Game::GetSelectedAbility() const { return _selectedSpell; }
 const std::vector<Position> Game::GetCellsInRange() const { return _cells_in_range; }
+const std::vector<VisualEvent>& Game::GetEvents() const  { return _events; }
+const VisualEvent* Game::FindEvent(EventType type) const {
+    const auto it = std::find_if(_events.begin(), _events.end(), [type](const VisualEvent& event) {
+        return event.type == type;
+    });
+    return it != _events.end() ? &*it : nullptr;
+}

@@ -11,6 +11,7 @@
 class Robot{
     protected:
         int _hp, _max_hp, _energy, _max_energy, _xp, _xp_to_lvlup, _current_lvl,_damage, _max_speed, _speed;
+        int _id;
         Position _position;
         bool _is_enemy;
         std::vector<std::unique_ptr<Abilities>> _abilities;
@@ -42,6 +43,7 @@ class Robot{
     void ResetTurnResources();
     void IncreaseMaxHp(int value);
     void SetPos(const Position& position);
+    void SetId(int id);
     Abilities* FindAbility(AbilityType type);
     const Abilities* FindAbility(AbilityType type) const;
     Statuses* FindStatus (StatusType type);
@@ -63,6 +65,7 @@ class Robot{
     const int GetSpeed() const;
     const int GetXpToLvlUp() const;
     const Position GetPos() const;
+    int GetId() const;
     const bool CanUseAbility() const;
     const bool CanMove() const;
     const std::vector<std::unique_ptr<Abilities>>& GetAbilities() const;

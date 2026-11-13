@@ -1,5 +1,7 @@
 #include "visualization.h"
+#include "abilities/abilities.h"
 #include "constants.h"
+#include "game.h"
 #include <iostream>
 
 namespace {
@@ -50,7 +52,8 @@ void Visualizer::Draw(std::string game_state,int win_x, int win_y){
             Visualizer::DrawRobots(_game.GetRobots(), cell_size,grid,mouse);
         }
         if(!_game.GetCellsInRange().empty() && _game.GetSelectedAbility() != AbilityType::sNone){
-            DrawAbilityCells(_game.GetCellsInRange());
+            bool onlyCircle = (_game.GetSelectedAbility() == AbilityType::sAroundHit);
+            DrawAbilityCells(_game.GetCellsInRange(),onlyCircle);
 		}
         Visualizer::DrawPlayer(_game.GetPlayer(), cell_size,mouse);
         Visualizer::ShowCurSpecifications(_game.GetPlayer());
@@ -203,9 +206,20 @@ void Visualizer::DrawPlayer(const Player& player, const std::vector<int>& cell_s
     const Position position = player.GetPos();
     float x = float(position.X() * cell_size[0]) + VisualSettings::MapMarginLeft;
     float y = float(position.Y() * cell_size[1]) + VisualSettings::MapMarginTop;
-    rectangle.setPosition({x,y});
-    rectangle.setFillColor(ToSfColor(VisualSettings::PlayerColor));
-    _window.draw(rectangle);
+    rectangle.setPosition({x,y});    
+    sf::Color EColor = ToSfColor( VisualSettings::PlayerColor);
+    if (!_game.GetEvents().empty()){
+        auto event = _game.FindEvent(EventType::kDamageFlash);
+            if (event){
+            const auto& timer_manager = _game.GetTimerManager();
+                auto progress=timer_manager.GetProgress(event->timerId);
+            if (progress > 0 and event->robotId == player.GetId()){
+                EColor = LerpColor(event->startColor,event->targetColor,progress);
+            }
+        }
+    }
+    rectangle.setFillColor(EColor);
+_window.draw(rectangle);
     bool hovered = rectangle.getGlobalBounds().contains(mouse);
     if (hovered)
     DrawStatusInfo(player,{int(x),int(y)},cell_size);
@@ -231,7 +245,19 @@ void Visualizer::DrawRobots(const std::vector<Robot>& robots, const std::vector<
             float x = float(position.X() * cell_size[0]) + VisualSettings::MapMarginLeft;
             float y = float(position.Y() * cell_size[1]) + VisualSettings::MapMarginTop;
             rectangle.setPosition({x,y});
+            sf::Color EColor = ToSfColor( VisualSettings::EnemyColor);
             rectangle.setFillColor(ToSfColor(VisualSettings::EnemyColor));
+            if (!_game.GetEvents().empty()){
+                auto event = _game.FindEvent(EventType::kDamageFlash);
+                 if (event){
+                    const auto& timer_manager = _game.GetTimerManager();
+                        auto progress=timer_manager.GetProgress(event->timerId);
+                    if (progress > 0 and event->robotId == robot.GetId()){
+                        EColor = LerpColor(event->startColor,event->targetColor,progress);
+                    }
+                }
+            }
+            rectangle.setFillColor(EColor);
             _window.draw(rectangle);
             bool hovered = rectangle.getGlobalBounds().contains(mouse);
             if (hovered) DrawStatusInfo(robot,{int(x),int(y)},cell_size);
@@ -362,7 +388,7 @@ std::optional<Position> Visualizer::CellAt(sf::Vector2i mouse){
     }
     return std::nullopt;
 }
-void Visualizer::DrawAbilityCells(const std::vector<Position>& cells){
+void Visualizer::DrawAbilityCells(const std::vector<Position>& cells,bool onlyCircle){
     const auto cell_size = CellSize();
     const sf::Color color = ToSfColor(VisualSettings::AbilityCellOutlineColor);
     const float outerR = std::min(cell_size[0], cell_size[1]) / 4.f;
@@ -391,10 +417,20 @@ void Visualizer::DrawAbilityCells(const std::vector<Position>& cells){
         rectangle.setPosition(topLeft);
         outer.setPosition(center);
         inner.setPosition(center);
-
-        _window.draw(rectangle);
-        _window.draw(outer);
-        _window.draw(inner);
+        if (!onlyCircle) _window.draw(rectangle);
+        if (!_game.GetEvents().empty()){
+            auto event = _game.FindEvent(EventType::AroundHit);
+                if (event){
+                const auto& timer_manager = _game.GetTimerManager();
+                    auto progress=timer_manager.GetProgress(event->timerId);
+                if (progress > 0){
+                    outer.setOutlineColor(LerpColor(event->startColor,event->targetColor,timer_manager.GetProgress(event->timerId)));
+                    inner.setFillColor(LerpColor(event->startColor,event->targetColor,timer_manager.GetProgress(event->timerId)));
+                    _window.draw(outer);
+                    _window.draw(inner);
+                }
+            }
+        }
     }
 }
 
@@ -465,6 +501,16 @@ void Visualizer::DrawStatus(StatusType statusType,const std::vector<int>& cell_s
     }
     
 }
+
+sf::Color Visualizer::LerpColor(VisualSettings::Rgba from, VisualSettings::Rgba to, float t)
+{
+    return sf::Color(
+        std::lerp(from.red, to.red, t),
+        std::lerp(from.green, to.green, t),
+        std::lerp(from.blue, to.blue, t),
+        std::lerp(from.alpha, to.alpha, t)
+    );
+}
 void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<int>& cell_size,
                            const std::vector<std::vector<Cell>>& grid) {
     sf::RectangleShape rectangle(sf::Vector2f(cell_size[0], cell_size[1]));
@@ -511,7 +557,10 @@ void Visualizer::DrawCells(const std::vector<int>& map_size, const std::vector<i
             rectangle.setFillColor(fill);
             auto outline_color = VisualSettings::CellOutlineColor;
             outline_color.alpha = visible ? VisualSettings::VisibleAlpha : VisualSettings::HiddenOutlineAlpha;
-            outline_color.alpha = _game.GetCellsInRange().empty() ? outline_color.alpha : outline_color.alpha/3;
+            if (_game.GetCellsInRange().empty() and (_game.GetSelectedAbility() == AbilityType::sFarHit or _game.GetSelectedAbility() == AbilityType::sTeleport)){
+                outline_color.alpha = outline_color.alpha/3;
+
+            }
             rectangle.setOutlineColor(ToSfColor(outline_color));
             _window.draw(rectangle);
         }

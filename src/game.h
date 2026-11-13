@@ -18,12 +18,27 @@
 #include <vector>
 #include <random>
 #include "constants.h"
+#include "time/timer_manager.h"
 
+enum class EventType
+{
+    kDamageFlash,
+    AroundHit,
+};
+struct VisualEvent
+{
+    EventType type;
+    int robotId;
+    int timerId;
 
+    VisualSettings::Rgba startColor;
+    VisualSettings::Rgba targetColor;
+};
 class Game{
     private:
         int _enemy_robot_count;
         int _turn;
+        TimerManager _timer_manager;
         Map _map;
         std::vector<Robot> _enemy_arr;
         Player _player;
@@ -33,16 +48,26 @@ class Game{
         bool _lose;
         AbilityType _selectedSpell;
         bool MoveRobot(Robot& robot, Controls::keys cmd);
+        int FindFreeRobotId() const;
         std::vector<Position> _cells_in_range;
+        std::vector<VisualEvent> _events;
+        
         
         
     public:
         Game(int _enemy_robot_count);
+        VisualEvent CreateVisualEvent(EventType type, int robotId = -1, float timerDuration= -1,
+                VisualSettings::Rgba startColor = VisualSettings::TransparentColor,
+                VisualSettings::Rgba endColor = VisualSettings::TransparentColor);
         void SetRobotPos();
         const Map& GetMap() const;
         Map& GetMap();
+        const std::vector<VisualEvent>& GetEvents() const;
+        const VisualEvent* FindEvent(EventType type) const;
         Player& GetPlayer();
         const Player& GetPlayer() const;
+        const TimerManager& GetTimerManager() const;
+        void UpdateVisualEvents();
         const std::vector<Robot>& GetRobots() const;
         void Move(Controls::keys cmd);
         void MoveRobotToCell(Robot& robot, const Position& position);

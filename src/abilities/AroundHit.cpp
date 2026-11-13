@@ -1,4 +1,5 @@
 #include "AroundHit.h"
+#include "abilities.h"
 
 
 
@@ -11,25 +12,30 @@ AroundHit::AroundHit()
 
 std::vector<Position> AroundHit::FindTargets(Position pos, Game& game){
     std::vector<Position> targets;
+    std::vector<Position> area;
+
     for (int y = -_radius; y <= _radius; ++y){
         for (int x = -_radius; x <= _radius; ++x){
             if (x == 0 && y == 0){
                 continue;
             }
-
             Position cur_pos(pos.X() + x, pos.Y() + y);
-
+            if (game.GetMap().IsFree(cur_pos)){
+                area.push_back(cur_pos);
+            }
             if (game.GetMap().IsOccupied(cur_pos)){
                 targets.push_back(cur_pos);
             }
         }
     }
+    game.SetCellsInRange(area);
     return targets;
 }
 
 void AroundHit::UseAbility(Robot& main, Game& game)
 {
     game.ClearSelection();
+    game.SetAbility(AbilityType::sAroundHit);
     const std::vector<Position> targets = FindTargets(main.GetPos(),game);
     for (const Position& target_pos : targets) {
         Robot& target = game.WhoOccupies(target_pos);
@@ -39,6 +45,7 @@ void AroundHit::UseAbility(Robot& main, Game& game)
         }
     }
     main.AddEnergy(-_energy_cost);
+    game.CreateVisualEvent(EventType::AroundHit,main.GetId(),TimeSettings::AroundHitDur,VisualSettings::AbilityCellOutlineColor,VisualSettings::TransparentColor);
 }
 void AroundHit::EndAbility(const Position pos,Game& game){
     return;

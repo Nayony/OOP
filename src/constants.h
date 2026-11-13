@@ -29,7 +29,7 @@ namespace PlayerSettings {
 }
 
 namespace RobotSettings {
-    inline constexpr int EnemyMaxHp = 10;
+    inline constexpr int EnemyMaxHp = 100;
     inline constexpr int EnemyMaxEnergy = 2;
     inline constexpr int EnemyXpToLevel = 240;
     inline constexpr int EnemyDamage = 4;
@@ -40,6 +40,7 @@ namespace RobotSettings {
 }
 
 namespace GameSettings {
+    inline constexpr int NormalEnemyCount = 3;
     inline constexpr int XpForKill = 80;
 }
 
@@ -98,6 +99,9 @@ namespace VisualSettings {
     inline constexpr Rgba DifficultCellColor{161, 208, 252, 255};
     inline constexpr Rgba CellOutlineColor{91, 183, 186, 255};
     inline constexpr Rgba AbilityCellOutlineColor{120,6,6,255};
+    inline constexpr Rgba WhiteColor{255,255,255,255};
+
+    
 
     inline constexpr float MapMarginLeft = 20;
     inline constexpr float MapMarginRight = 220;
@@ -169,6 +173,11 @@ namespace StatusesSettings {
     
     inline constexpr int ShieldEndurance = 2;
     inline constexpr int MiniShieldDuration = 2;
+}
+namespace TimeSettings {
+    inline constexpr float FlashDamageDur = 0.5;
+    inline constexpr float AroundHitDur = 1.3;
+
 }
 
 #endif

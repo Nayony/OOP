@@ -6,7 +6,7 @@
 #include <optional>
 #include <string>
 #include <SFML/Graphics.hpp>
-
+#include "time/timer_manager.h"
 class Visualizer{
     private:
     const Game& _game;
@@ -27,13 +27,13 @@ class Visualizer{
         void DrawRobots(const std::vector<Robot>& robots, const std::vector<int>& cell_size,const std::vector<std::vector<Cell>>& grid,sf::Vector2f mouse);
         void DrawPlayer(const Player& player, const std::vector<int>& cell_size,sf::Vector2f mouse);
         void ShowCurSpecifications(const Player& player);
-        sf::Color LerpColor(sf::Color from, sf::Color to, float t);
+        sf::Color LerpColor(VisualSettings::Rgba from, VisualSettings::Rgba to, float t);
         void DrawSpecificationsOnRobot(const sf::RectangleShape& rectangle, const Robot& robot);
         void DrawAbilityButton(const Game& game,sf::Vector2f mouse);
         void DrawGuideAbilityPanel(std::string description,std::string topic,std::string lvl);
         std::optional<Position> CellAt(sf::Vector2i mouse);
         std::vector<int> CellSize() const;
-        void DrawAbilityCells(const std::vector<Position>& cells);
+        void DrawAbilityCells(const std::vector<Position>& cells,bool onlyCircle);
         void ChangeVisualizationMode();   
         void DrawCurrentMode();
         void DrawStatus(StatusType status,const std::vector<int>& cell_size,Position pos,int counter,int position);
